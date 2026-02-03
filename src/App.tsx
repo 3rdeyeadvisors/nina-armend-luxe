@@ -7,6 +7,14 @@ import { useCartSync } from "@/hooks/useCartSync";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductPage from "./pages/ProductPage";
+import MixAndMatch from "./pages/MixAndMatch";
+import SizeQuiz from "./pages/SizeQuiz";
+import FittingRoom from "./pages/FittingRoom";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminProducts from "./pages/admin/Products";
+import AdminOrders from "./pages/admin/Orders";
+import SearchPage from "./pages/Search";
+import Wishlist from "./pages/Wishlist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +28,14 @@ function AppContent() {
         <Route path="/" element={<Index />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/product/:handle" element={<ProductPage />} />
+        <Route path="/mix-and-match" element={<MixAndMatch />} />
+        <Route path="/size-quiz" element={<SizeQuiz />} />
+        <Route path="/fitting-room" element={<FittingRoom />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/products" element={<AdminProducts />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/wishlist" element={<Wishlist />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

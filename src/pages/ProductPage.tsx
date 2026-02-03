@@ -4,8 +4,9 @@ import { useCartStore } from '@/stores/cartStore';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { ThreeSixtyViewer } from '@/components/ThreeSixtyViewer';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Heart, Minus, Plus, Loader2, ChevronLeft, Truck, Shield, RotateCcw } from 'lucide-react';
+import { ShoppingBag, Heart, Minus, Plus, Loader2, ChevronLeft, Truck, Shield, RotateCcw, Box } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -17,6 +18,7 @@ const ProductPage = () => {
   
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [is360View, setIs360View] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -100,14 +102,32 @@ const ProductPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
             >
-              {/* Main image */}
-              <div className="aspect-[3/4] bg-card rounded-sm overflow-hidden mb-4">
-                {mainImage && (
-                  <img
-                    src={mainImage.url}
-                    alt={mainImage.altText || product.title}
-                    className="w-full h-full object-cover"
-                  />
+              {/* Main image / 360 Viewer */}
+              <div className="relative mb-4">
+                {is360View ? (
+                  <ThreeSixtyViewer images={images.map(img => img.node.url)} />
+                ) : (
+                  <div className="aspect-[3/4] bg-card rounded-sm overflow-hidden">
+                    {mainImage && (
+                      <img
+                        src={mainImage.url}
+                        alt={mainImage.altText || product.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {images.length > 2 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-4 left-4 bg-background/80 backdrop-blur-sm border-primary/20"
+                    onClick={() => setIs360View(!is360View)}
+                  >
+                    <Box className="h-4 w-4 mr-2" />
+                    {is360View ? 'Standard View' : '360° Spin'}
+                  </Button>
                 )}
               </div>
               
@@ -158,9 +178,19 @@ const ProductPage = () => {
               {product.options.map((option, optionIndex) => (
                 option.values.length > 1 && (
                   <div key={option.name} className="mb-6">
-                    <label className="block text-sm font-sans tracking-wider uppercase mb-3">
-                      {option.name}
-                    </label>
+                    <div className="flex justify-between items-center mb-3">
+                      <label className="block text-sm font-sans tracking-wider uppercase">
+                        {option.name}
+                      </label>
+                      {option.name.toLowerCase().includes('size') && (
+                        <Link
+                          to="/size-quiz"
+                          className="text-xs text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
+                        >
+                          Find My Size
+                        </Link>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {option.values.map((value) => {
                         const variantWithValue = variants.findIndex(v => 

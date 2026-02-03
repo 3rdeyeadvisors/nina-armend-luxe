@@ -4,23 +4,23 @@ import { Star, Gift, Truck, Shield } from 'lucide-react';
 const features = [
   {
     icon: Truck,
-    title: 'Free Worldwide Shipping',
-    description: 'Complimentary shipping on orders over $150',
+    title: 'Worldwide Express',
+    description: 'Free shipping on all orders over $150 USD',
   },
   {
     icon: Shield,
-    title: 'Quality Guaranteed',
-    description: 'Premium fabrics with meticulous craftsmanship',
+    title: 'Brazilian Excellence',
+    description: 'Handcrafted with premium double-lined Italian fabrics',
   },
   {
     icon: Gift,
-    title: 'Luxury Packaging',
-    description: 'Every order arrives beautifully presented',
+    title: 'Luxury Presentation',
+    description: 'Signature eco-friendly gold-foiled packaging',
   },
   {
     icon: Star,
-    title: 'Rewards Program',
-    description: 'Earn points with every purchase',
+    title: 'Elite Rewards',
+    description: 'Exclusive access and points with every purchase',
   },
 ];
 
