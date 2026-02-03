@@ -13,6 +13,7 @@ import FittingRoom from "./pages/FittingRoom";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import SearchPage from "./pages/Search";
 import Wishlist from "./pages/Wishlist";
 import About from "./pages/About";
@@ -40,9 +41,9 @@ function AppContent() {
         <Route path="/mix-and-match" element={<MixAndMatch />} />
         <Route path="/size-quiz" element={<SizeQuiz />} />
         <Route path="/fitting-room" element={<FittingRoom />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/products" element={<AdminProducts />} />
-        <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
+        <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/about" element={<About />} />

@@ -11,13 +11,7 @@ import { Search as SearchIcon } from 'lucide-react';
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  const { data: products } = useProducts(20, query);
-
-  // Fallback to mock data if Shopify returns nothing or for demonstration
-  const filteredMock = MOCK_PRODUCTS.filter(p =>
-    p.title.toLowerCase().includes(query.toLowerCase()) ||
-    p.category.toLowerCase().includes(query.toLowerCase())
-  );
+  const { data: products, isLoading } = useProducts(20, query);
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,23 +28,16 @@ export default function SearchPage() {
             </p>
           </div>
 
-          {filteredMock.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : products && products.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {filteredMock.map((product, index) => (
+              {products.map((product, index) => (
                 <ProductCard
-                  key={product.id}
-                  product={{
-                    node: {
-                      id: 'gid://shopify/Product/' + product.id,
-                      title: product.title,
-                      handle: product.handle,
-                      description: '',
-                      priceRange: { minVariantPrice: { amount: product.price.toString(), currencyCode: 'USD' } },
-                      images: { edges: product.images.map(url => ({ node: { url, altText: null } })) },
-                      variants: { edges: [{ node: { id: 'v-' + product.id, title: 'Default', price: { amount: product.price.toString(), currencyCode: 'USD' }, availableForSale: true, selectedOptions: [] } }] },
-                      options: []
-                    }
-                  } as any}
+                  key={product.node.id}
+                  product={product}
                   index={index}
                 />
               ))}
