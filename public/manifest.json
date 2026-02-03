@@ -1,0 +1,21 @@
+{
+  "name": "NINA ARMEND | Brazilian Swimwear",
+  "short_name": "NINA ARMEND",
+  "description": "Luxury Brazilian swimwear designed to celebrate your silhouette.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#C5A267",
+  "icons": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/placeholder.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

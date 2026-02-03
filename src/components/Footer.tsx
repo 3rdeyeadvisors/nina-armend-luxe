@@ -13,7 +13,7 @@ const footerLinks = {
     { name: 'Accessories', href: '/shop?category=accessories' },
   ],
   help: [
-    { name: 'Size Guide', href: '/size-guide' },
+    { name: 'Size Guide & Quiz', href: '/size-quiz' },
     { name: 'Shipping & Returns', href: '/shipping' },
     { name: 'FAQ', href: '/faq' },
     { name: 'Contact Us', href: '/contact' },

@@ -38,9 +38,9 @@ export function Hero() {
             transition={{ duration: 1, delay: 0.7 }}
             className="font-serif text-5xl md:text-7xl lg:text-8xl font-light tracking-wide mb-8 text-shadow"
           >
-            <span className="gradient-gold-text">Elegance</span>
+            <span className="gradient-gold-text">Timeless</span>
             <br />
-            <span className="text-foreground">Redefined</span>
+            <span className="text-foreground">Sophistication</span>
           </motion.h1>
           
           <motion.p
@@ -49,8 +49,8 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.9 }}
             className="text-muted-foreground font-sans text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed"
           >
-            Discover the art of Brazilian craftsmanship. Each piece is designed to 
-            celebrate your silhouette with luxurious fabrics and timeless sophistication.
+            Experience the essence of Brazilian luxury. Handcrafted pieces
+            designed to accentuate your natural beauty with premium double-lined fabrics.
           </motion.p>
           
           <motion.div
