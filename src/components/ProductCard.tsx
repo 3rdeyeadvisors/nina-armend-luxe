@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShopifyProduct } from '@/lib/shopify';
 import { useCartStore } from '@/stores/cartStore';
+import { useWishlistStore } from '@/stores/wishlistStore';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2, Heart } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { node } = product;
   const addItem = useCartStore(state => state.addItem);
   const isLoading = useCartStore(state => state.isLoading);
+  const { toggleItem, isInWishlist } = useWishlistStore();
   const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -110,16 +112,29 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           {/* Wishlist button */}
           <motion.button
             initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 1 : 0 }}
+            animate={{ opacity: isHovered || isInWishlist(node.id) ? 1 : 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-4 right-4 p-2 bg-background/80 rounded-full hover:bg-background transition-colors"
+            className={`absolute top-4 right-4 p-2 bg-background/80 rounded-full hover:bg-background transition-colors ${
+              isInWishlist(node.id) ? 'text-primary' : ''
+            }`}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              toast.info('Wishlist coming soon!');
+              toggleItem({
+                id: node.id,
+                title: node.title,
+                handle: node.handle,
+                image: mainImage?.url || '',
+                price: price.amount
+              });
+              if (!isInWishlist(node.id)) {
+                toast.success('Added to wishlist');
+              } else {
+                toast.info('Removed from wishlist');
+              }
             }}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={`h-4 w-4 ${isInWishlist(node.id) ? 'fill-current' : ''}`} />
           </motion.button>
         </div>
 

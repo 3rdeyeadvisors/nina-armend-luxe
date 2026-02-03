@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { MOCK_PRODUCTS } from "./mockData";
 
 // Shopify API Configuration
 const SHOPIFY_API_VERSION = '2025-07';
@@ -229,15 +230,88 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
   return data;
 }
 
+// Helper to map mock data to Shopify format
+const mapMockToShopify = (product: any): ShopifyProduct => ({
+  node: {
+    id: `gid://shopify/Product/${product.id}`,
+    title: product.title,
+    description: "Experience the ultimate in Brazilian luxury. Our collection is handcrafted in Rio de Janeiro using sustainable, high-performance fabrics.",
+    handle: product.handle,
+    priceRange: {
+      minVariantPrice: {
+        amount: product.price.toString(),
+        currencyCode: "USD",
+      },
+    },
+    images: {
+      edges: product.images.map((url: string) => ({
+        node: { url, altText: product.title },
+      })),
+    },
+    variants: {
+      edges: [
+        {
+          node: {
+            id: `gid://shopify/ProductVariant/${product.id}-default`,
+            title: "Default Title",
+            price: { amount: product.price.toString(), currencyCode: "USD" },
+            availableForSale: true,
+            selectedOptions: [{ name: "Title", value: "Default Title" }],
+          },
+        },
+      ],
+    },
+    options: [{ name: "Title", values: ["Default Title"] }],
+  },
+});
+
 // Product Fetching
 export async function fetchProducts(first: number = 20, query?: string): Promise<ShopifyProduct[]> {
-  const data = await storefrontApiRequest(PRODUCTS_QUERY, { first, query });
-  return data?.data?.products?.edges || [];
+  try {
+    const data = await storefrontApiRequest(PRODUCTS_QUERY, { first, query });
+    const products = data?.data?.products?.edges || [];
+
+    // If no products returned from Shopify, fallback to mock data
+    if (products.length === 0) {
+      console.log('No products from Shopify, using mock data');
+      let filteredMock = MOCK_PRODUCTS;
+      if (query) {
+        filteredMock = MOCK_PRODUCTS.filter(p =>
+          p.title.toLowerCase().includes(query.toLowerCase()) ||
+          p.category.toLowerCase().includes(query.toLowerCase()) ||
+          p.colors.some(c => c.toLowerCase().includes(query.toLowerCase()))
+        );
+      }
+      return filteredMock.slice(0, first).map(mapMockToShopify);
+    }
+
+    return products;
+  } catch (error) {
+    console.error('Error fetching products from Shopify, using mock data:', error);
+    return MOCK_PRODUCTS.slice(0, first).map(mapMockToShopify);
+  }
 }
 
 export async function fetchProductByHandle(handle: string): Promise<ShopifyProduct['node'] | null> {
-  const data = await storefrontApiRequest(PRODUCT_BY_HANDLE_QUERY, { handle });
-  return data?.data?.productByHandle || null;
+  try {
+    const data = await storefrontApiRequest(PRODUCT_BY_HANDLE_QUERY, { handle });
+    const product = data?.data?.productByHandle;
+
+    if (!product) {
+      console.log(`Product with handle ${handle} not found in Shopify, checking mock data`);
+      const mockProduct = MOCK_PRODUCTS.find(p => p.handle === handle);
+      if (mockProduct) {
+        return mapMockToShopify(mockProduct).node;
+      }
+      return null;
+    }
+
+    return product;
+  } catch (error) {
+    console.error('Error fetching product by handle from Shopify, checking mock data:', error);
+    const mockProduct = MOCK_PRODUCTS.find(p => p.handle === handle);
+    return mockProduct ? mapMockToShopify(mockProduct).node : null;
+  }
 }
 
 // Cart Operations
