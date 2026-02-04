@@ -1,4 +1,3 @@
-
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { ReactNode } from 'react';
@@ -20,20 +19,6 @@ export const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRoutePr
   if (adminOnly && user?.email !== 'lydia@ninaarmend.co.site') {
     // Redirect to home if trying to access admin page without admin email
     return <Navigate to="/" replace />;
-import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '@/stores/authStore';
-
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
-
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, isAuthenticated } = useAuthStore();
-
-  const isAdmin = isAuthenticated && user?.email === 'lydia@ninaarmend.co.site';
-
-  if (!isAdmin) {
-    return <Navigate to="/account" replace />;
   }
 
   return <>{children}</>;

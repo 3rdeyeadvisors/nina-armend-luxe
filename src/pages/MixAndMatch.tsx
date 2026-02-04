@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { MOCK_PRODUCTS, MockProduct } from '@/lib/mockData';
+import { MOCK_PRODUCTS } from '@/lib/mockData';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ShoppingBag, RotateCcw } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
+import { mapMockToShopify } from '@/lib/shopify';
 import { toast } from 'sonner';
 
 export default function MixAndMatch() {
@@ -36,20 +37,20 @@ export default function MixAndMatch() {
     toast.promise(
       Promise.all([
         addItem({
-          product: { node: { ...currentTop, id: 'gid://shopify/Product/' + currentTop.id, description: '', images: { edges: currentTop.images.map(url => ({ node: { url, altText: null } })) }, variants: { edges: [{ node: { id: 'v-' + currentTop.id, title: 'Default', price: { amount: currentTop.price.toString(), currencyCode: 'USD' }, availableForSale: true, selectedOptions: [] } }] }, options: [], priceRange: { minVariantPrice: { amount: currentTop.price.toString(), currencyCode: 'USD' } } } } as any,
-          variantId: 'v-' + currentTop.id,
-          variantTitle: 'Default',
+          product: mapMockToShopify(currentTop),
+          variantId: 'gid://shopify/ProductVariant/' + currentTop.id + '-default',
+          variantTitle: 'Default Title',
           price: { amount: currentTop.price.toString(), currencyCode: 'USD' },
           quantity: 1,
-          selectedOptions: []
+          selectedOptions: [{ name: 'Title', value: 'Default Title' }]
         }),
         addItem({
-          product: { node: { ...currentBottom, id: 'gid://shopify/Product/' + currentBottom.id, description: '', images: { edges: currentBottom.images.map(url => ({ node: { url, altText: null } })) }, variants: { edges: [{ node: { id: 'v-' + currentBottom.id, title: 'Default', price: { amount: currentBottom.price.toString(), currencyCode: 'USD' }, availableForSale: true, selectedOptions: [] } }] }, options: [], priceRange: { minVariantPrice: { amount: currentBottom.price.toString(), currencyCode: 'USD' } } } } as any,
-          variantId: 'v-' + currentBottom.id,
-          variantTitle: 'Default',
+          product: mapMockToShopify(currentBottom),
+          variantId: 'gid://shopify/ProductVariant/' + currentBottom.id + '-default',
+          variantTitle: 'Default Title',
           price: { amount: currentBottom.price.toString(), currencyCode: 'USD' },
           quantity: 1,
-          selectedOptions: []
+          selectedOptions: [{ name: 'Title', value: 'Default Title' }]
         })
       ]),
       {

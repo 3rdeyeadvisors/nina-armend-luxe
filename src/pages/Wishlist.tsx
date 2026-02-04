@@ -3,6 +3,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { useWishlistStore } from '@/stores/wishlistStore';
+import { mapMockToShopify } from '@/lib/shopify';
 import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
 
@@ -29,18 +30,15 @@ export default function Wishlist() {
               {items.map((item, index) => (
                 <ProductCard
                   key={item.id}
-                  product={{
-                    node: {
-                      id: item.id,
-                      title: item.title,
-                      handle: item.handle,
-                      description: '',
-                      priceRange: { minVariantPrice: { amount: item.price, currencyCode: 'USD' } },
-                      images: { edges: [{ node: { url: item.image, altText: null } }] },
-                      variants: { edges: [{ node: { id: 'v-' + item.id, title: 'Default', price: { amount: item.price, currencyCode: 'USD' }, availableForSale: true, selectedOptions: [] } }] },
-                      options: []
-                    }
-                  } as any}
+                  product={mapMockToShopify({
+                    id: item.id.replace('gid://shopify/Product/', ''),
+                    title: item.title,
+                    handle: item.handle,
+                    price: parseFloat(item.price),
+                    images: [item.image],
+                    category: 'Top',
+                    colors: []
+                  })}
                   index={index}
                 />
               ))}
