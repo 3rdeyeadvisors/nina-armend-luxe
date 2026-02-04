@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { MOCK_PRODUCTS } from "./mockData";
+import { MOCK_PRODUCTS, type MockProduct } from "./mockData";
 
 // Shopify API Configuration
 const SHOPIFY_API_VERSION = '2025-07';
@@ -231,7 +231,7 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
 }
 
 // Helper to map mock data to Shopify format
-const mapMockToShopify = (product: any): ShopifyProduct => ({
+export const mapMockToShopify = (product: MockProduct): ShopifyProduct => ({
   node: {
     id: `gid://shopify/Product/${product.id}`,
     title: product.title,
