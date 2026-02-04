@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProducts';
 import { useCartStore } from '@/stores/cartStore';
+import { useWishlistStore } from '@/stores/wishlistStore';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ const ProductPage = () => {
   const { data: product, isLoading, error } = useProduct(handle || '');
   const addItem = useCartStore(state => state.addItem);
   const isCartLoading = useCartStore(state => state.isLoading);
+  const { toggleItem, isInWishlist } = useWishlistStore();
   
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -263,10 +265,25 @@ const ProductPage = () => {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="px-6 border-border hover:border-primary/50"
-                  onClick={() => toast.info('Wishlist coming soon!')}
+                  className={`px-6 border-border hover:border-primary/50 ${
+                    isInWishlist(product.id) ? 'text-primary border-primary/30 bg-primary/5' : ''
+                  }`}
+                  onClick={() => {
+                    toggleItem({
+                      id: product.id,
+                      title: product.title,
+                      handle: product.handle,
+                      image: product.images.edges[0]?.node.url || '',
+                      price: product.priceRange.minVariantPrice.amount
+                    });
+                    if (!isInWishlist(product.id)) {
+                      toast.success('Added to wishlist');
+                    } else {
+                      toast.info('Removed from wishlist');
+                    }
+                  }}
                 >
-                  <Heart className="h-5 w-5" />
+                  <Heart className={`h-5 w-5 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
                 </Button>
               </div>
 

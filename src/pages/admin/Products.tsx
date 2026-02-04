@@ -4,18 +4,16 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Plus, Search, Edit2, Trash2, Upload, Box } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, Upload, Box, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { MOCK_PRODUCTS } from '@/lib/mockData';
-import { useState } from 'react';
+import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const { data: products, isLoading } = useProducts(50);
 
   const handleDelete = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
-    toast.error("Product deleted");
+    toast.error("Delete functionality is restricted in demo mode");
   };
 
   return (
@@ -70,21 +68,29 @@ export default function AdminProducts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <img src={product.images[0]} alt="" className="w-12 h-16 object-cover rounded" />
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                     </TableCell>
-                    <TableCell className="font-medium">{product.title}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
+                  </TableRow>
+                ) : products?.map((product) => (
+                  <TableRow key={product.node.id}>
+                    <TableCell>
+                      <img src={product.node.images.edges[0]?.node.url} alt="" className="w-12 h-16 object-cover rounded" />
+                    </TableCell>
+                    <TableCell className="font-medium">{product.node.title}</TableCell>
+                    <TableCell>Swimwear</TableCell>
+                    <TableCell>
+                      {product.node.priceRange.minVariantPrice.currencyCode} {parseFloat(product.node.priceRange.minVariantPrice.amount).toFixed(2)}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-sans tracking-widest uppercase font-medium bg-emerald-100 text-emerald-800 w-fit">
                           In Stock
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {product.id === 'm1' ? '12' : product.id === 'm2' ? '8' : '24'} units
+                          {product.node.variants.edges[0]?.node.availableForSale ? 'Available' : 'Out of Stock'}
                         </span>
                       </div>
                     </TableCell>
@@ -98,7 +104,7 @@ export default function AdminProducts() {
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(product.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(product.node.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
