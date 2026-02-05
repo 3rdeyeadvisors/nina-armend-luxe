@@ -36,14 +36,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { User, Package, Gift, Share2, Camera, LogOut, Lock, Eye, EyeOff, UserPlus, Trash2, AlertCircle, LayoutDashboard } from 'lucide-react';
+import { User, Package, Gift, Share2, Camera, LogOut, Lock, Eye, EyeOff, UserPlus, Trash2, AlertCircle, LayoutDashboard, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore, ADMIN_EMAIL } from '@/stores/authStore';
+import { useWishlistStore } from '@/stores/wishlistStore';
+import { playSound } from '@/lib/sounds';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Account() {
   const { user, isAuthenticated, login, signup, logout, updateProfile, resetPassword, deleteAccount } = useAuthStore();
+  const { items: wishlistItems, removeItem: removeFromWishlist } = useWishlistStore();
   const [showPassword, setShowPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -63,6 +67,7 @@ export default function Account() {
     const name = formData.get('name') as string;
 
     updateProfile({ name });
+    playSound('success');
     toast.success("Profile updated successfully!");
   };
 
@@ -313,6 +318,11 @@ export default function Account() {
                   </label>
                 </div>
                 <h2 className="font-serif text-2xl">{user?.name}</h2>
+                {user?.role && (
+                  <p className="text-[10px] font-sans tracking-[0.2em] uppercase text-primary font-bold mb-1">
+                    {user.role}
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground mb-6">{user?.email}</p>
 
                 <div className="grid grid-cols-2 gap-4 border-t pt-6">
@@ -361,19 +371,28 @@ export default function Account() {
             {/* Main Content Area */}
             <div className="flex-1 w-full">
               <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="bg-background border w-full justify-start h-12 mb-6">
-                  <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TabsList className="bg-background border w-full justify-start h-12 mb-6 overflow-x-auto no-scrollbar">
+                  <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" onClick={() => playSound('click')}>
                     <User className="h-4 w-4 mr-2" /> Profile
                   </TabsTrigger>
-                  <TabsTrigger value="orders" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TabsTrigger value="orders" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" onClick={() => playSound('click')}>
                     <Package className="h-4 w-4 mr-2" /> Orders
                   </TabsTrigger>
-                  <TabsTrigger value="rewards" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TabsTrigger value="wishlist" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" onClick={() => playSound('click')}>
+                    <Heart className="h-4 w-4 mr-2" /> Wishlist
+                  </TabsTrigger>
+                  <TabsTrigger value="rewards" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" onClick={() => playSound('click')}>
                     <Gift className="h-4 w-4 mr-2" /> Rewards
                   </TabsTrigger>
                 </TabsList>
 
+                <AnimatePresence mode="wait">
                 <TabsContent value="profile">
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
                   <Card className="border-primary/10">
                     <CardHeader>
                       <CardTitle className="font-serif">Account Details</CardTitle>
@@ -430,9 +449,15 @@ export default function Account() {
                       </div>
                     </CardContent>
                   </Card>
+                  </motion.div>
                 </TabsContent>
 
                 <TabsContent value="orders">
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
                   <Card className="border-primary/10">
                     <CardHeader>
                       <CardTitle className="font-serif">Order History</CardTitle>
@@ -472,9 +497,68 @@ export default function Account() {
                       </div>
                     </CardContent>
                   </Card>
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="wishlist">
+                   <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
+                  <Card className="border-primary/10">
+                    <CardHeader>
+                      <CardTitle className="font-serif">My Wishlist</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {wishlistItems.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                          <p className="text-muted-foreground font-sans">Your wishlist is empty.</p>
+                          <Button asChild variant="link" className="text-primary mt-2">
+                            <Link to="/shop">Go Shopping</Link>
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {wishlistItems.map((item) => (
+                            <div key={item.id} className="flex gap-4 p-4 border rounded-2xl group hover:border-primary/30 transition-all">
+                              <img src={item.image} alt={item.title} className="w-16 h-20 object-cover rounded-lg" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-sans font-bold text-sm truncate">{item.title}</p>
+                                <p className="font-serif text-sm text-primary mb-2">${item.price}</p>
+                                <div className="flex gap-2">
+                                  <Button asChild size="sm" className="h-7 text-[10px] px-3">
+                                    <Link to={`/product/${item.handle}`}>View</Link>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-[10px] px-3 text-destructive"
+                                    onClick={() => {
+                                      removeFromWishlist(item.id);
+                                      playSound('remove');
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  </motion.div>
                 </TabsContent>
 
                 <TabsContent value="rewards">
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
                   <div className="space-y-6">
                     <Card className="bg-gradient-to-br from-primary/10 via-background to-secondary/30 border-primary/20 shadow-xl overflow-hidden relative">
                       <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -533,7 +617,9 @@ export default function Account() {
                       </CardContent>
                     </Card>
                   </div>
+                  </motion.div>
                 </TabsContent>
+                </AnimatePresence>
               </Tabs>
             </div>
           </div>

@@ -7,6 +7,7 @@ export interface User {
   avatar?: string;
   points?: number;
   referralCode?: string;
+  role?: string;
 }
 
 interface AuthUser extends User {
@@ -37,7 +38,8 @@ const DEFAULT_ADMIN: AuthUser = {
   password: 'Bossqueen26!',
   avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200',
   points: 0,
-  referralCode: 'NINA-LYD-2025'
+  referralCode: 'NINA-LYD-2025',
+  role: 'Founder & Owner'
 };
 
 export const useAuthStore = create<AuthStore>()(
