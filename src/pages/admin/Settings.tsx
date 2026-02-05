@@ -22,9 +22,12 @@ export default function AdminSettings() {
           <AdminSidebar />
 
           <main className="w-full space-y-8">
-            <h1 className="font-serif text-3xl">Settings</h1>
+            <div className="flex flex-col items-center text-center space-y-2">
+              <h1 className="font-serif text-4xl tracking-tight">Store Settings</h1>
+              <p className="text-muted-foreground text-sm">Configure your platform preferences and AI intelligence</p>
+            </div>
 
-            <div className="grid gap-6">
+            <div className="grid gap-6 max-w-4xl mx-auto">
               <Card>
                 <CardHeader>
                   <CardTitle className="font-serif">General Settings</CardTitle>

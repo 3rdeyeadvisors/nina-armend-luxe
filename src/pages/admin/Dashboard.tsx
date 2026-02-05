@@ -126,12 +126,10 @@ export default function AdminDashboard() {
 
           {/* Main Content */}
           <main className="w-full space-y-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="font-serif text-3xl">Store Overview</h1>
-                <p className="text-muted-foreground text-sm">Welcome back, Lydia. Here's what's happening today.</p>
-              </div>
-              <div className="text-sm text-muted-foreground">Last updated: Just now</div>
+            <div className="flex flex-col items-center text-center space-y-2">
+              <h1 className="font-serif text-4xl tracking-tight">Store Overview</h1>
+              <p className="text-muted-foreground text-sm max-w-md">Welcome back, Lydia. Here's what's happening with Nina Armend today.</p>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-primary/60 font-medium pt-2">Last updated: Just now</div>
             </div>
 
             {/* Stats Grid */}

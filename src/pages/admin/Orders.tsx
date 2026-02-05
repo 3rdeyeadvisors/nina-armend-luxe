@@ -23,7 +23,10 @@ export default function AdminOrders() {
 
           {/* Main Content */}
           <main className="w-full space-y-8 bg-card p-8 rounded-2xl border border-border/50 shadow-sm">
-            <h1 className="font-serif text-3xl">Recent Orders</h1>
+            <div className="flex flex-col items-center text-center space-y-2">
+              <h1 className="font-serif text-4xl tracking-tight">Recent Orders</h1>
+              <p className="text-muted-foreground text-sm">Monitor and manage your latest customer transactions</p>
+            </div>
 
             <Table>
               <TableHeader>
