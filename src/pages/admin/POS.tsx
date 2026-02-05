@@ -8,6 +8,7 @@ import { useProducts, type ShopifyProduct } from '@/hooks/useProducts';
 import { useAdminStore, type AdminOrder } from '@/stores/adminStore';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
+import { playSound } from '@/lib/sounds';
 
 interface PosItem {
   id: string;
@@ -66,17 +67,20 @@ export default function AdminPOS() {
         id: product.id,
         title: product.title,
         price: product.priceRange.minVariantPrice.amount,
-        image: product.images.edges[0]?.node.url || '',
+        image: product.images.edges[0]?.node.url || 'https://images.unsplash.com/photo-1585924756944-b82af627eca9?q=80&w=200',
         quantity: 1
       }]);
     }
+    playSound('click');
   };
 
   const removeFromCart = (id: string) => {
     setPosCart(posCart.filter(item => item.id !== id));
+    playSound('remove');
   };
 
   const updateQuantity = (id: string, delta: number) => {
+    playSound('click');
     setPosCart(posCart.map(item => {
       if (item.id === id) {
         const newQty = Math.max(1, item.quantity + delta);
@@ -114,6 +118,7 @@ export default function AdminPOS() {
       setIsProcessing(false);
       setShowSuccess(true);
       setPosCart([]);
+      playSound('success');
       toast.success("Transaction completed successfully!");
 
       setTimeout(() => setShowSuccess(false), 3000);
@@ -142,12 +147,18 @@ export default function AdminPOS() {
               <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/10">
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                   {products.map((product) => (
-                    <Card key={product.node.id} className="cursor-pointer hover:shadow-md transition-shadow group overflow-hidden border-border/50" onClick={() => addToCart(product.node)}>
-                      <div className="aspect-[3/4] overflow-hidden">
-                        <img src={product.node.images.edges[0]?.node.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Card key={product.node.id} className="cursor-pointer hover:shadow-gold transition-all duration-300 group overflow-hidden border-border/50 hover:-translate-y-1" onClick={() => addToCart(product.node)}>
+                      <div className="aspect-[3/4] overflow-hidden relative">
+                        <img
+                          src={product.node.images.edges[0]?.node.url || 'https://images.unsplash.com/photo-1585924756944-b82af627eca9?q=80&w=400'}
+                          alt={product.node.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                       </div>
-                      <CardContent className="p-3">
-                        <p className="font-sans text-xs font-medium truncate">{product.node.title}</p>
+                      <CardContent className="p-3 bg-background">
+                        <p className="font-sans text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{product.node.productType}</p>
+                        <p className="font-sans text-xs font-bold truncate mb-1">{product.node.title}</p>
                         <p className="font-serif text-sm text-primary">${parseFloat(product.node.priceRange.minVariantPrice.amount).toFixed(2)}</p>
                       </CardContent>
                     </Card>

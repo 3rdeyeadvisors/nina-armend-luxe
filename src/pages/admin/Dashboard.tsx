@@ -287,8 +287,8 @@ export default function AdminDashboard() {
                     <CardTitle className="font-serif text-lg">AI Assistant</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-col h-[350px]">
-                  <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+                <CardContent className="flex flex-col h-[300px] md:h-[350px]">
+                  <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin">
                     {chatMessages.map((msg, idx) => (
                       <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] p-3 rounded-xl text-sm font-sans ${

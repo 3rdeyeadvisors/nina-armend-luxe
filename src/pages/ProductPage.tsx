@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { ThreeSixtyViewer } from '@/components/ThreeSixtyViewer';
+import { ReviewSection } from '@/components/ReviewSection';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Minus, Plus, Loader2, ChevronLeft, Truck, Shield, RotateCcw, Box } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -321,6 +322,9 @@ const ProductPage = () => {
               </div>
             </motion.div>
           </div>
+
+          {/* Review Section */}
+          <ReviewSection productId={product.id} />
         </div>
       </main>
       <Footer />

@@ -53,6 +53,36 @@ export default function About() {
             </motion.div>
           </div>
 
+          <div className="grid md:grid-cols-2 gap-12 items-center mb-20 flex-row-reverse">
+             <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="md:order-2"
+            >
+              <h2 className="font-serif text-3xl mb-2">Meet the Founder</h2>
+              <p className="text-primary font-sans tracking-[0.2em] uppercase text-[10px] font-bold mb-6">Lydia — Founder & Owner</p>
+              <p className="text-muted-foreground mb-4 leading-relaxed">
+                Lydia founded Nina Armend with a clear vision: to bring the authentic soul of Brazilian beach culture to the global luxury market. Her background in fashion design and her deep connection to the coastal lifestyle of Rio de Janeiro drive the brand's creative direction.
+              </p>
+              <p className="text-muted-foreground leading-relaxed italic">
+                "Nina Armend is a tribute to the confident, effortless elegance of the modern woman. We don't just make bikinis; we create memories of sun-kissed days and endless summers."
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="aspect-[4/5] bg-secondary rounded-2xl overflow-hidden md:order-1"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=800"
+                alt="Lydia - Founder & Owner"
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
+          </div>
+
           <div className="bg-secondary/30 rounded-3xl p-12 md:p-20 text-center">
             <h2 className="font-serif text-3xl mb-8">Uncompromising Craftsmanship</h2>
             <div className="grid md:grid-cols-3 gap-12">

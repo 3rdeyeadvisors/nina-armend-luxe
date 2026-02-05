@@ -17,12 +17,12 @@ export function AdminSidebar() {
   ];
 
   return (
-    <nav className="w-full flex flex-wrap items-center gap-2 mb-8 p-1.5 bg-background/50 backdrop-blur-sm rounded-2xl border border-primary/10 shadow-sm">
-      <div className="hidden lg:block px-4 py-2 mr-2 border-r border-border/30">
+    <nav className="w-full flex items-center gap-2 mb-8 p-1.5 bg-background/50 backdrop-blur-sm rounded-2xl border border-primary/10 shadow-sm overflow-x-auto no-scrollbar">
+      <div className="hidden lg:block px-4 py-2 mr-2 border-r border-border/30 shrink-0">
         <p className="text-[9px] font-sans tracking-[0.3em] uppercase text-primary font-bold">Admin Portal</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         {links.map((link) => {
           const Icon = link.icon;
           const isActive = location.pathname === link.href;

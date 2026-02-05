@@ -5,8 +5,9 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { MOCK_PRODUCTS } from '@/lib/mockData';
 import { motion } from 'framer-motion';
-import { Upload, User, Maximize2, Move, Trash2 } from 'lucide-react';
+import { Upload, User, Maximize2, Move, Trash2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { playSound } from '@/lib/sounds';
 
 export default function FittingRoom() {
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
@@ -26,6 +27,7 @@ export default function FittingRoom() {
     if (file) {
       const url = URL.createObjectURL(file);
       setUserPhoto(url);
+      playSound('success');
       toast.success("Photo uploaded! Now select a product to try on.");
     }
   };
@@ -60,7 +62,11 @@ export default function FittingRoom() {
                 {MOCK_PRODUCTS.map((product) => (
                   <button
                     key={product.id}
-                    onClick={() => { setSelectedProduct(product); resetOverlay(); }}
+                      onClick={() => {
+                        setSelectedProduct(product);
+                        resetOverlay();
+                        playSound('click');
+                      }}
                     className={`aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
                       selectedProduct.id === product.id ? 'border-primary' : 'border-transparent hover:border-primary/30'
                     }`}
@@ -127,11 +133,11 @@ export default function FittingRoom() {
               {userPhoto && (
                 <div className="bg-card border border-border/50 p-6 rounded-2xl flex flex-wrap items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
-                    <Button variant="outline" size="sm" onClick={() => setUserPhoto(null)}>
+                    <Button variant="outline" size="sm" onClick={() => { setUserPhoto(null); playSound('remove'); }}>
                       <Trash2 className="h-4 w-4 mr-2" />
                       Clear Photo
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    <Button variant="outline" size="sm" onClick={() => { fileInputRef.current?.click(); playSound('click'); }}>
                       <Upload className="h-4 w-4 mr-2" />
                       Change Photo
                     </Button>
