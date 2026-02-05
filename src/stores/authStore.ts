@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { hashPassword } from '@/lib/security';
 
 export interface User {
   name: string;
@@ -18,8 +19,8 @@ interface AuthStore {
   user: User | null;
   isAuthenticated: boolean;
   users: AuthUser[];
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string) => Promise<boolean>;
   resetPassword: (email: string) => boolean;
   deleteAccount: (email: string) => boolean;
   logout: () => void;
@@ -35,7 +36,7 @@ export const ADMIN_EMAIL = 'lydia@ninaarmend.co.site';
 const DEFAULT_ADMIN: AuthUser = {
   name: 'Lydia',
   email: ADMIN_EMAIL,
-  password: 'Bossqueen26!',
+  password: '1028fa031c3f91f18519a2a997a00579efcdcf64b3b4a96ac65143e30811ca43',
   avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200',
   points: 0,
   referralCode: 'NINA-LYD-2025',
@@ -49,7 +50,7 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       users: [DEFAULT_ADMIN],
 
-      login: (email, password) => {
+      login: async (email, password) => {
         /**
          * SECURITY NOTE: This is a mock implementation for demonstration.
          * In production, NEVER store plain text passwords in the frontend or localStorage.
@@ -59,26 +60,30 @@ export const useAuthStore = create<AuthStore>()(
         const { users } = get();
         const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-        if (foundUser && foundUser.password === password) {
-          const { password: _, ...userWithoutPassword } = foundUser;
-          // Normalize email to lowercase in the session user object
-          const normalizedUser = { ...userWithoutPassword, email: foundUser.email.toLowerCase() };
-          set({ user: normalizedUser, isAuthenticated: true });
-          return true;
+        if (foundUser) {
+          const hashedInput = await hashPassword(password);
+          if (foundUser.password === hashedInput) {
+            const { password: _, ...userWithoutPassword } = foundUser;
+            // Normalize email to lowercase in the session user object
+            const normalizedUser = { ...userWithoutPassword, email: foundUser.email.toLowerCase() };
+            set({ user: normalizedUser, isAuthenticated: true });
+            return true;
+          }
         }
         return false;
       },
 
-      signup: (name, email, password) => {
+      signup: async (name, email, password) => {
         const { users } = get();
         if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
           return false;
         }
 
+        const hashedPassword = await hashPassword(password);
         const newUser: AuthUser = {
           name,
           email: email.toLowerCase(),
-          password,
+          password: hashedPassword,
           avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
           points: 250, // Welcome points
           referralCode: `NINA-${name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 1000)}`
@@ -135,7 +140,7 @@ export const useAuthStore = create<AuthStore>()(
       }),
     }),
     {
-      name: 'nina-armend-auth-v3',
+      name: 'nina-armend-auth-v4',
       storage: createJSONStorage(() => localStorage),
     }
   )

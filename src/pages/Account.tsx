@@ -71,10 +71,10 @@ export default function Account() {
     toast.success("Profile updated successfully!");
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loginEmail && loginPassword) {
-      const success = login(loginEmail, loginPassword);
+      const success = await login(loginEmail, loginPassword);
       if (success) {
         toast.success(`Welcome back!`);
       } else {
@@ -110,10 +110,10 @@ export default function Account() {
     }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (signupName && signupEmail && signupPassword) {
-      const success = signup(signupName, signupEmail, signupPassword);
+      const success = await signup(signupName, signupEmail, signupPassword);
       if (success) {
         toast.success("Welcome to Nina Armend! Your account has been created.");
       } else {
