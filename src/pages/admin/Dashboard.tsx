@@ -120,12 +120,12 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-secondary/20">
       <Header />
-      <div className="pt-32 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
-        <div className="flex flex-col xl:flex-row gap-8 lg:gap-12">
+      <div className="pt-40 md:pt-48 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+        <div className="flex flex-col gap-4">
           <AdminSidebar />
 
           {/* Main Content */}
-          <main className="flex-1 space-y-8">
+          <main className="w-full space-y-8">
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="font-serif text-3xl">Store Overview</h1>
