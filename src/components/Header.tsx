@@ -44,7 +44,7 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
       <AnnouncementBar />
       <nav className="container mx-auto px-4 md:px-8">
-        <div className="grid grid-cols-3 items-center h-16 md:h-24">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16 md:h-24 gap-4">
           {/* Left section - Mobile menu / Desktop nav */}
           <div className="flex items-center gap-4 md:gap-8">
             <Button 
@@ -57,8 +57,8 @@ export function Header() {
             </Button>
 
             {/* Desktop navigation - left */}
-            <div className="hidden lg:flex items-center gap-8">
-              {navLinks.slice(0, 2).map((link) => (
+            <div className="hidden xl:flex items-center gap-8 pr-4">
+              {navLinks.slice(0, 3).map((link) => (
                 <Link
                   key={link.name}
                   to={link.href}
@@ -71,17 +71,17 @@ export function Header() {
           </div>
 
           {/* Logo - Perfect Center */}
-          <div className="flex justify-center">
+          <div className="flex justify-center z-10 mx-8">
             <Link to="/" className="flex flex-col items-center">
               <Logo />
             </Link>
           </div>
 
-          {/* Right section - Desktop nav / Icons */}
+          {/* Right section - Icons */}
           <div className="flex items-center justify-end gap-2 md:gap-4 lg:gap-8">
             {/* Desktop navigation - right */}
-            <div className="hidden lg:flex items-center gap-8">
-              {navLinks.slice(2, 4).map((link) => (
+            <div className="hidden 2xl:flex items-center gap-8 pl-4">
+              {navLinks.slice(3, 5).map((link) => (
                 <Link
                   key={link.name}
                   to={link.href}

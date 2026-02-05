@@ -6,10 +6,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, AreaChart, Area
 } from 'recharts';
-import { TrendingUp, ShoppingBag, Users, DollarSign, Package, LayoutDashboard, Settings, Brain, Sparkles, MessageSquare, Upload } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Users, DollarSign, Package, LayoutDashboard, Settings, Brain, Sparkles, MessageSquare, Upload, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useState, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 
 const data = [
   { name: 'Mon', sales: 4000, traffic: 2400 },
@@ -22,13 +24,105 @@ const data = [
 ];
 
 export default function AdminDashboard() {
+  const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([
+    { role: 'ai', text: "Hello Lydia! How can I help you optimize your store today?" }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [mostViewed, setMostViewed] = useState<{id: string, title: string, views: number, image: string}[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
+
+  useEffect(() => {
+    // Load most viewed products
+    const views = JSON.parse(localStorage.getItem('product_views') || '{}');
+    const productInfo = JSON.parse(localStorage.getItem('tracked_products') || '{}');
+
+    const sorted = Object.entries(views)
+      .map(([id, count]) => ({
+        id,
+        views: count as number,
+        title: productInfo[id]?.title || 'Unknown Product',
+        image: productInfo[id]?.image || ''
+      }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 4);
+
+    setMostViewed(sorted);
+  }, []);
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+
+    const userMessage = chatInput;
+    setChatMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setChatInput('');
+    setIsAiTyping(true);
+
+    // Simulated AI Logic
+    setTimeout(() => {
+      let aiResponse = "I'm analyzing that for you...";
+      const msg = userMessage.toLowerCase();
+
+      if (msg.includes('sales') || msg.includes('revenue')) {
+        aiResponse = "Your sales are up 20.1% this month! The 'Copacabana' collection is your top performer, accounting for 35% of revenue. I suggest running a 'Complete the Set' promotion to increase Average Order Value.";
+      } else if (msg.includes('inventory') || msg.includes('stock')) {
+        aiResponse = "I've detected 12 items low in stock, primarily in size Small. I recommend placing a restock order for the 'Ipanema Top' in Metallic within the next 48 hours to avoid lost sales during the weekend peak.";
+      } else if (msg.includes('marketing') || msg.includes('customer')) {
+        aiResponse = "Your most engaged customers are currently in Miami and Los Angeles. I suggest a targeted Instagram campaign focusing on 'Beach Club Chic' aesthetics, as these regions have a 15% higher conversion rate for your luxury line.";
+      } else if (msg.includes('price') || msg.includes('discount')) {
+        aiResponse = "Based on competitor analysis, your 'Leblon' series is priced 10% below market average for similar Italian fabrics. You could increase the margin by $5 without impacting volume, or offer a 10% bundle discount for top/bottom pairs.";
+      } else if (msg.includes('seo') || msg.includes('traffic') || msg.includes('google')) {
+        aiResponse = "Your organic traffic from Google has grown 8% this week. To maximize this for the launch, ensure your 'Sustainability' page has updated meta tags for 'Ethical Luxury Swimwear'—this keyword is currently trending.";
+      } else if (msg.includes('suggestion') || msg.includes('idea') || msg.includes('improve')) {
+        aiResponse = "Here's an idea: Your 'Fitting Room' feature has a 65% engagement rate but only 12% of those users add to cart. Adding a 'Recommended for Your Shape' badge within the fitting room could boost conversions by up to 20%.";
+      } else if (msg.includes('launch')) {
+        aiResponse = "For the upcoming launch, I recommend a 'VIP Early Access' window for your top 100 loyalty point earners. This creates scarcity and rewards your most valuable customers, typically leading to a 30% faster sell-through rate.";
+      } else {
+        aiResponse = "That's a great question. Looking at your store data, my top recommendation today is to optimize the mobile checkout experience. 78% of your traffic is on mobile, but checkout completion is 5% lower than on desktop. Simplifying the address entry could bridge this gap.";
+      }
+
+      setChatMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
+      setIsAiTyping(false);
+    }, 1500);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      toast.info(`Uploading ${file.name}...`);
+
+      // Simulate processing
+      setTimeout(() => {
+        setIsUploading(false);
+        toast.success("Spreadsheet analyzed! Inventory synced and 4 optimizations suggested.", {
+          description: "Check the AI Insights section for details."
+        });
+        setChatMessages(prev => [...prev, {
+          role: 'ai',
+          text: `I've finished analyzing ${file.name}. I found 4 potential stock-outs for next month and updated the inventory for 24 items. You can see the full report in the Store Intelligence card.`
+        }]);
+      }, 3000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-secondary/20">
       <Header />
-      <div className="pt-24 pb-12 container mx-auto px-4">
-        <div className="flex flex-col md:flex-row gap-8">
+      <div className="pt-32 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+        <div className="flex flex-col xl:flex-row gap-12 justify-center">
           {/* Sidebar */}
-          <aside className="w-full md:w-64 space-y-2">
+          <aside className="w-full xl:w-72 space-y-2 shrink-0">
             <Link to="/admin" className="flex items-center gap-3 px-4 py-3 bg-primary text-primary-foreground rounded-lg shadow-sm">
               <LayoutDashboard className="h-5 w-5" />
               <span className="font-sans font-medium">Dashboard</span>
@@ -120,10 +214,27 @@ export default function AdminDashboard() {
                   Drag and drop your product CSV or Excel file here. Our AI will automatically sync your inventory and suggest optimizations.
                 </p>
                 <div className="flex gap-3">
-                  <Button variant="outline" className="font-sans">
-                    Select File
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    variant="outline"
+                    className="font-sans"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                    {isUploading ? 'Uploading...' : 'Select File'}
                   </Button>
-                  <Button className="bg-primary font-sans">
+                  <Button
+                    className="bg-primary font-sans"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
                     <Brain className="h-4 w-4 mr-2" />
                     Analyze with AI
                   </Button>
@@ -231,19 +342,76 @@ export default function AdminDashboard() {
                      <Button className="w-full justify-start font-sans" variant="outline">
                         <Users className="h-4 w-4 mr-2" /> Review Customer Inquiries
                      </Button>
-                     <div className="pt-4 mt-4 border-t">
+                     <div className="pt-4 mt-4 border-t flex flex-col h-[300px]">
                         <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground mb-4">AI Concierge</p>
-                        <div className="relative">
-                           <textarea
-                             placeholder="Ask your AI assistant anything..."
-                             className="w-full h-24 bg-secondary/30 rounded-lg p-3 text-xs border-none focus:ring-1 focus:ring-primary resize-none font-sans"
+                        <div className="flex-1 overflow-y-auto mb-4 space-y-3 pr-2 scrollbar-thin scrollbar-thumb-primary/10">
+                           {chatMessages.map((msg, i) => (
+                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                               <div className={`max-w-[85%] p-3 rounded-2xl text-[11px] font-sans leading-relaxed ${
+                                 msg.role === 'user'
+                                 ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                 : 'bg-secondary text-foreground rounded-tl-none'
+                               }`}>
+                                 {msg.text}
+                               </div>
+                             </div>
+                           ))}
+                           {isAiTyping && (
+                             <div className="flex justify-start">
+                               <div className="bg-secondary p-3 rounded-2xl rounded-tl-none flex gap-1">
+                                 <span className="w-1 h-1 bg-primary/40 rounded-full animate-bounce" />
+                                 <span className="w-1 h-1 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                 <span className="w-1 h-1 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                               </div>
+                             </div>
+                           )}
+                           <div ref={chatEndRef} />
+                        </div>
+                        <div className="relative mt-auto">
+                           <input
+                             type="text"
+                             placeholder="Ask anything..."
+                             value={chatInput}
+                             onChange={(e) => setChatInput(e.target.value)}
+                             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                             className="w-full h-10 bg-secondary/50 rounded-full px-4 pr-12 text-xs border border-primary/10 focus:ring-1 focus:ring-primary outline-none font-sans"
                            />
-                           <Button size="sm" className="absolute bottom-2 right-2 h-7 text-[10px] px-3">Send</Button>
+                           <Button
+                             size="icon"
+                             className="absolute right-1 top-1 h-8 w-8 rounded-full"
+                             onClick={handleSendMessage}
+                             disabled={isAiTyping}
+                           >
+                              <Sparkles className="h-4 w-4" />
+                           </Button>
                         </div>
                      </div>
                   </CardContent>
                </Card>
             </div>
+
+            {/* Most Viewed Products */}
+            {mostViewed.length > 0 && (
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="font-serif text-xl">Most Viewed Products</CardTitle>
+                  <CardDescription>Items catching the most attention this week</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {mostViewed.map((product) => (
+                      <div key={product.id} className="flex items-center gap-4 p-3 bg-secondary/30 rounded-xl">
+                        <img src={product.image} alt="" className="w-12 h-16 object-cover rounded-lg shadow-sm" />
+                        <div>
+                          <p className="text-xs font-serif font-bold truncate max-w-[120px]">{product.title}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{product.views} views</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -17,10 +17,10 @@ export default function AdminOrders() {
   return (
     <div className="min-h-screen bg-secondary/20">
       <Header />
-      <div className="pt-24 pb-12 container mx-auto px-4">
-        <div className="flex flex-col md:flex-row gap-8">
+      <div className="pt-32 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+        <div className="flex flex-col xl:flex-row gap-12 justify-center">
           {/* Sidebar */}
-          <aside className="w-full md:w-64 space-y-2">
+          <aside className="w-full xl:w-72 space-y-2 shrink-0">
             <Link to="/admin" className="flex items-center gap-3 px-4 py-3 hover:bg-card rounded-lg transition-colors">
               <Package className="h-5 w-5 text-muted-foreground" />
               <span className="font-sans">Dashboard</span>

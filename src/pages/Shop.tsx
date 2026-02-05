@@ -20,7 +20,7 @@ const Shop = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20 md:pt-24">
+      <main className="pt-32 md:pt-40">
         {/* Page header */}
         <section className="py-16 md:py-24 text-center border-b border-border">
           <div className="container mx-auto px-4 md:px-8">

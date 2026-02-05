@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
@@ -125,7 +126,7 @@ export default function Account() {
     return (
       <div className="min-h-screen bg-secondary/10">
         <Header />
-        <main className="pt-32 pb-20">
+        <main className="pt-40 pb-20">
           <div className="container mx-auto px-4 max-w-md">
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -286,7 +287,7 @@ export default function Account() {
   return (
     <div className="min-h-screen bg-secondary/10">
       <Header />
-      <main className="pt-32 pb-20">
+      <main className="pt-40 pb-20">
         <div className="container mx-auto px-4 md:px-8 max-w-5xl">
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Sidebar / Profile Summary */}
@@ -306,14 +307,23 @@ export default function Account() {
                 <p className="text-sm text-muted-foreground mb-6">{user?.email}</p>
 
                 <div className="grid grid-cols-2 gap-4 border-t pt-6">
-                  <div className="text-center">
-                    <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground">Orders</p>
-                    <p className="font-serif text-lg">{mockOrders.length}</p>
+                  <div className="text-center p-3 bg-secondary/30 rounded-xl">
+                    <p className="text-[10px] font-sans tracking-[0.2em] uppercase text-muted-foreground mb-1">Orders</p>
+                    <p className="font-serif text-xl font-bold">{mockOrders.length}</p>
                   </div>
-                  <div className="text-center border-l">
-                    <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground">Points</p>
-                    <p className="font-serif text-lg">{user?.points || 0}</p>
+                  <div className="text-center p-3 bg-primary/5 rounded-xl border border-primary/10">
+                    <p className="text-[10px] font-sans tracking-[0.2em] uppercase text-primary mb-1">Points</p>
+                    <p className="font-serif text-xl font-bold text-primary">{user?.points || 0}</p>
                   </div>
+                </div>
+
+                <div className="mt-6 space-y-2 text-left">
+                  <div className="flex justify-between text-[10px] font-sans tracking-wider uppercase">
+                    <span>Bronze Status</span>
+                    <span className="text-primary">{(user?.points || 0)} / 500</span>
+                  </div>
+                  <Progress value={((user?.points || 0) / 500) * 100} className="h-1.5" />
+                  <p className="text-[9px] text-muted-foreground text-center italic">250 points until Silver Status</p>
                 </div>
               </CardContent>
               <div className="p-4 border-t">
@@ -408,51 +418,85 @@ export default function Account() {
                       <CardTitle className="font-serif">Order History</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {mockOrders.map((order) => (
-                            <TableRow key={order.id}>
-                              <TableCell className="font-medium">{order.id}</TableCell>
-                              <TableCell>{order.date}</TableCell>
-                              <TableCell>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-sans tracking-wider uppercase bg-emerald-100 text-emerald-800">
-                                  {order.status}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-right">{order.total}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <div className="space-y-4">
+                        {mockOrders.map((order) => (
+                          <div key={order.id} className="p-4 border border-primary/5 bg-secondary/10 rounded-2xl group hover:border-primary/20 transition-all">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                              <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 bg-background rounded-xl flex items-center justify-center border shadow-sm">
+                                  <Package className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="font-sans font-bold text-sm uppercase tracking-tight">{order.id}</p>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{order.date}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                                <div className="text-right">
+                                  <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground mb-1">Status</p>
+                                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-none text-[9px] uppercase tracking-widest px-2 py-0">
+                                    {order.status}
+                                  </Badge>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground mb-1">Total</p>
+                                  <p className="font-serif font-bold text-lg">{order.total}</p>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-primary font-sans text-[10px] uppercase tracking-widest group-hover:bg-primary/5" onClick={() => toast.info(`Order ${order.id} details coming soon!`)}>
+                                  Details
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
 
                 <TabsContent value="rewards">
                   <div className="space-y-6">
-                    <Card className="bg-gradient-to-br from-primary/20 to-secondary border-primary/20 shadow-md">
-                      <CardHeader>
-                        <CardTitle className="font-serif text-2xl">Inner Circle Rewards</CardTitle>
-                        <CardDescription className="text-foreground/70">You have <span className="text-primary font-bold text-lg">{user?.points || 0}</span> Referral Points</CardDescription>
+                    <Card className="bg-gradient-to-br from-primary/10 via-background to-secondary/30 border-primary/20 shadow-xl overflow-hidden relative">
+                      <div className="absolute top-0 right-0 p-8 opacity-10">
+                         <Gift className="h-32 w-32 rotate-12" />
+                      </div>
+                      <CardHeader className="relative z-10">
+                        <Badge className="w-fit mb-2 bg-primary text-primary-foreground">Bronze Member</Badge>
+                        <CardTitle className="font-serif text-3xl">Inner Circle Rewards</CardTitle>
+                        <CardDescription className="text-foreground/70">You're on your way to exclusive Brazilian luxury perks.</CardDescription>
                       </CardHeader>
-                      <CardContent>
-                         <p className="text-sm mb-6">Redeem your points for exclusive discounts and early access to new collections.</p>
-                         <div className="flex gap-4">
-                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => toast.info("Points redemption available in the mobile app")}>Redeem Points</Button>
-                            <Button variant="outline" onClick={() => toast.info("Loyalty program details coming soon")}>Learn More</Button>
+                      <CardContent className="relative z-10">
+                         <div className="bg-background/60 backdrop-blur-md border border-primary/10 p-6 rounded-2xl mb-6">
+                            <div className="flex justify-between items-end mb-4">
+                               <div>
+                                  <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground mb-1">Available Points</p>
+                                  <p className="text-4xl font-serif font-bold text-primary">{user?.points || 0}</p>
+                               </div>
+                               <div className="text-right">
+                                  <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground mb-1">Lifetime Earned</p>
+                                  <p className="text-xl font-serif font-medium">1,250</p>
+                               </div>
+                            </div>
+                            <Progress value={((user?.points || 0) / 1000) * 100} className="h-2 mb-2" />
+                            <div className="flex justify-between text-[10px] font-sans tracking-widest uppercase text-muted-foreground">
+                               <span>0</span>
+                               <span>1000 pts for $50 reward</span>
+                            </div>
+                         </div>
+
+                         <div className="flex flex-wrap gap-4">
+                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-gold" onClick={() => toast.info("Points redemption available in the mobile app")}>
+                               <Gift className="h-4 w-4 mr-2" />
+                               Redeem for $25 Off
+                            </Button>
+                            <Button variant="outline" className="border-primary/20 text-primary hover:bg-primary/5" onClick={() => toast.info("Loyalty program details coming soon")}>
+                               Benefit Tiers
+                            </Button>
                          </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="border-primary/10">
+                    <Card className="border-primary/10 shadow-sm">
                       <CardHeader>
                         <CardTitle className="font-serif">Refer a Friend</CardTitle>
                         <CardDescription>Give $20, Get 100 Points. Share your love for Nina Armend.</CardDescription>
