@@ -59,7 +59,9 @@ export const useAuthStore = create<AuthStore>()(
 
         if (foundUser && foundUser.password === password) {
           const { password: _, ...userWithoutPassword } = foundUser;
-          set({ user: userWithoutPassword, isAuthenticated: true });
+          // Normalize email to lowercase in the session user object
+          const normalizedUser = { ...userWithoutPassword, email: foundUser.email.toLowerCase() };
+          set({ user: normalizedUser, isAuthenticated: true });
           return true;
         }
         return false;
@@ -73,7 +75,7 @@ export const useAuthStore = create<AuthStore>()(
 
         const newUser: AuthUser = {
           name,
-          email,
+          email: email.toLowerCase(),
           password,
           avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
           points: 250, // Welcome points

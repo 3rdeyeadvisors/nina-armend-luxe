@@ -29,7 +29,7 @@ export function Header() {
   const wishlistItems = useWishlistStore(state => state.items);
   const { user, isAuthenticated } = useAuthStore();
 
-  const isAdmin = isAuthenticated && user?.email === ADMIN_EMAIL;
+  const isAdmin = isAuthenticated && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,8 +122,8 @@ export function Header() {
               </Link>
 
               {isAdmin && (
-                <Link to="/admin">
-                  <Button variant="outline" size="sm" className="hidden lg:flex gap-2 border-primary/20 text-primary hover:bg-primary/5 ml-2 font-sans text-[10px] uppercase tracking-widest">
+                <Link to="/admin" className="hidden md:block">
+                  <Button variant="outline" size="sm" className="flex gap-2 border-primary/20 text-primary hover:bg-primary/5 ml-2 font-sans text-[10px] uppercase tracking-widest">
                     <LayoutDashboard className="h-3 w-3" />
                     Admin Dashboard
                   </Button>
