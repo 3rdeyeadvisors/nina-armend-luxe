@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useAdminStore } from '@/stores/adminStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -27,6 +27,7 @@ const data = [
 ];
 
 export default function AdminDashboard() {
+  const { orders, customers } = useAdminStore();
   const { orders } = useAdminStore();
   const { users } = useAuthStore();
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([
@@ -106,6 +107,10 @@ export default function AdminDashboard() {
     }, 1500);
   };
 
+  const totalRevenue = useMemo(() => {
+    return orders.reduce((acc, order) => acc + parseFloat(order.total), 0);
+  }, [orders]);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -143,6 +148,54 @@ export default function AdminDashboard() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="shadow-lg border-primary/10 bg-gradient-to-br from-background to-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-sans tracking-widest uppercase text-muted-foreground">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center text-center py-6">
+                  <div className="text-3xl font-serif mb-1">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  <p className="text-xs text-emerald-500 flex items-center mt-1 font-sans">
+                    <TrendingUp className="h-3 w-3 mr-1" /> +20.1% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-lg border-primary/10 bg-gradient-to-br from-background to-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-sans tracking-widest uppercase text-muted-foreground">Orders</CardTitle>
+                  <ShoppingBag className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center text-center py-6">
+                  <div className="text-3xl font-serif mb-1">{orders.length}</div>
+                  <p className="text-xs text-emerald-500 flex items-center mt-1 font-sans">
+                    <TrendingUp className="h-3 w-3 mr-1" /> +12% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-lg border-primary/10 bg-gradient-to-br from-background to-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-sans tracking-widest uppercase text-muted-foreground">Customers</CardTitle>
+                  <Users className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center text-center py-6">
+                  <div className="text-3xl font-serif mb-1">{customers.length}</div>
+                  <p className="text-xs text-emerald-500 flex items-center mt-1 font-sans">
+                    <TrendingUp className="h-3 w-3 mr-1" /> +19% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-lg border-primary/10 bg-gradient-to-br from-background to-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-sans tracking-widest uppercase text-muted-foreground">Inventory Status</CardTitle>
+                  <Package className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center text-center py-6">
+                  <div className="text-3xl font-serif mb-1">842 Items</div>
+                  <p className="text-xs text-amber-500 flex items-center mt-1">
+                    12 items low in stock
+                  </p>
+                </CardContent>
+              </Card>
               <Link to="/admin/orders" className="block hover:scale-[1.02] transition-transform">
                 <Card className="shadow-lg border-primary/10 bg-gradient-to-br from-background to-primary/5 h-full">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">

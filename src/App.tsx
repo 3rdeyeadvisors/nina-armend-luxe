@@ -14,6 +14,8 @@ import FittingRoom from "./pages/FittingRoom";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/Orders";
+import AdminCustomers from "./pages/admin/Customers";
+import AdminPOS from "./pages/admin/POS";
 import AdminSettings from "./pages/admin/Settings";
 import AdminCustomers from "./pages/admin/Customers";
 import AdminPOS from "./pages/admin/POS";
@@ -59,6 +61,16 @@ function AppContent() {
         <Route path="/admin/orders" element={
           <ProtectedRoute adminOnly>
             <AdminOrders />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/customers" element={
+          <ProtectedRoute adminOnly>
+            <AdminCustomers />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/pos" element={
+          <ProtectedRoute adminOnly>
+            <AdminPOS />
           </ProtectedRoute>
         } />
         <Route path="/admin/settings" element={
