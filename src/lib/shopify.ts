@@ -11,7 +11,7 @@ import { MOCK_PRODUCTS, type MockProduct } from "./mockData";
 const SHOPIFY_API_VERSION = '2025-07';
 const SHOPIFY_STORE_PERMANENT_DOMAIN = 'nina-armend-luxe-jakdx.myshopify.com';
 const SHOPIFY_STOREFRONT_URL = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/api/${SHOPIFY_API_VERSION}/graphql.json`;
-const SHOPIFY_STOREFRONT_TOKEN = 'b2182e742682263e0ccb8a0bc4e31388';
+const SHOPIFY_STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN || 'b2182e742682263e0ccb8a0bc4e31388';
 
 // Types
 export interface ShopifyProduct {
