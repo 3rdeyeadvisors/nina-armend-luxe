@@ -36,10 +36,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { User, Package, Gift, Share2, Camera, LogOut, Lock, Eye, EyeOff, UserPlus, Trash2, AlertCircle } from 'lucide-react';
+import { User, Package, Gift, Share2, Camera, LogOut, Lock, Eye, EyeOff, UserPlus, Trash2, AlertCircle, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, ADMIN_EMAIL } from '@/stores/authStore';
 
 export default function Account() {
   const { user, isAuthenticated, login, signup, logout, updateProfile, resetPassword, deleteAccount } = useAuthStore();
@@ -334,7 +335,18 @@ export default function Account() {
                   <p className="text-[9px] text-muted-foreground text-center italic">250 points until Silver Status</p>
                 </div>
               </CardContent>
-              <div className="p-4 border-t">
+              <div className="p-4 border-t space-y-2">
+                 {user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+                   <Link to="/admin">
+                     <Button
+                       variant="outline"
+                       className="w-full justify-start border-primary/20 text-primary hover:bg-primary/5 mb-2"
+                     >
+                        <LayoutDashboard className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                     </Button>
+                   </Link>
+                 )}
                  <Button
                    variant="ghost"
                    onClick={logout}

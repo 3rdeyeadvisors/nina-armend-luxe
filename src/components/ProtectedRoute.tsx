@@ -16,7 +16,7 @@ export const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRoutePr
     return <Navigate to="/account" state={{ from: location }} replace />;
   }
 
-  if (adminOnly && user?.email !== ADMIN_EMAIL) {
+  if (adminOnly && user?.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     // Redirect to home if trying to access admin page without admin email
     return <Navigate to="/" replace />;
   }
