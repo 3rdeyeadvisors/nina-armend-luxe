@@ -42,7 +42,7 @@ const Shop = () => {
           </div>
         </section>
 
-        <ProductGrid limit={24} />
+        <ProductGrid query={category || undefined} limit={24} />
       </main>
       <Footer />
     </div>

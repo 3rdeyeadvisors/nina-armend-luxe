@@ -284,11 +284,23 @@ export async function fetchProducts(first: number = 20, query?: string): Promise
       console.log('No products from Shopify, using mock data');
       let filteredMock = MOCK_PRODUCTS;
       if (query) {
-        filteredMock = MOCK_PRODUCTS.filter(p =>
-          p.title.toLowerCase().includes(query.toLowerCase()) ||
-          p.category.toLowerCase().includes(query.toLowerCase()) ||
-          p.colors.some(c => c.toLowerCase().includes(query.toLowerCase()))
-        );
+        const q = query.toLowerCase();
+        filteredMock = MOCK_PRODUCTS.filter(p => {
+          const title = p.title.toLowerCase();
+          const category = p.category.toLowerCase();
+          const type = (p.productType || '').toLowerCase();
+          const colors = p.colors.map(c => c.toLowerCase());
+
+          const matches = (target: string) => {
+            if (!target) return false;
+            return target.includes(q) || q.includes(target) ||
+                   (q === 'bikinis' && target === 'bikini') ||
+                   (q === 'one-pieces' && target === 'one-piece') ||
+                   (q === 'cover-ups' && target === 'cover-up');
+          };
+
+          return title.includes(q) || matches(category) || matches(type) || colors.some(c => matches(c));
+        });
       }
       return filteredMock.slice(0, first).map(mapMockToShopify);
     }
