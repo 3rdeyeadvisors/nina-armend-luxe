@@ -8,7 +8,7 @@ import { Package, Plus, Search, Edit2, Trash2, Upload, Box, Loader2, Sparkles } 
 import { Link } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -30,9 +30,23 @@ interface EditableProduct {
 }
 
 export default function AdminProducts() {
-  const { data: products, isLoading } = useProducts(50);
+  const { data: initialProducts, isLoading } = useProducts(50);
+  const [products, setProducts] = useState<any[]>([]);
   const [editingProduct, setEditingProduct] = useState<EditableProduct | null>(null);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initialProducts && products.length === 0) {
+      // Check localStorage first
+      const savedProducts = localStorage.getItem('admin_products');
+      if (savedProducts) {
+        setProducts(JSON.parse(savedProducts));
+      } else {
+        setProducts(initialProducts);
+      }
+    }
+  }, [initialProducts]);
 
   const handleDelete = (id: string) => {
     toast.error("Delete functionality is restricted in demo mode");
@@ -50,18 +64,66 @@ export default function AdminProducts() {
     }, 1500);
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditingProduct(prev => prev ? { ...prev, image: reader.result as string } : null);
+        toast.success("Image uploaded successfully!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = () => {
-    toast.success("Product updated successfully (Simulated)");
+    if (!editingProduct) return;
+
+    const updatedProducts = products.map(p => {
+      if (p.node.id === editingProduct.id) {
+        return {
+          ...p,
+          node: {
+            ...p.node,
+            title: editingProduct.title,
+            priceRange: {
+              ...p.node.priceRange,
+              minVariantPrice: {
+                ...p.node.priceRange.minVariantPrice,
+                amount: editingProduct.price
+              }
+            },
+            images: {
+              ...p.node.images,
+              edges: [
+                {
+                  node: {
+                    ...p.node.images.edges[0].node,
+                    url: editingProduct.image
+                  }
+                },
+                ...p.node.images.edges.slice(1)
+              ]
+            }
+          }
+        };
+      }
+      return p;
+    });
+
+    setProducts(updatedProducts);
+    localStorage.setItem('admin_products', JSON.stringify(updatedProducts));
+    toast.success("Product updated successfully!");
     setEditingProduct(null);
   };
 
   return (
     <div className="min-h-screen bg-secondary/20">
       <Header />
-      <div className="pt-24 pb-12 container mx-auto px-4">
-        <div className="flex flex-col md:flex-row gap-8">
+      <div className="pt-32 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+        <div className="flex flex-col xl:flex-row gap-12 justify-center">
           {/* Sidebar */}
-          <aside className="w-full md:w-64 space-y-2">
+          <aside className="w-full xl:w-72 space-y-2 shrink-0">
             <Link to="/admin" className="flex items-center gap-3 px-4 py-3 hover:bg-card rounded-lg transition-colors">
               <Package className="h-5 w-5 text-muted-foreground" />
               <span className="font-sans">Dashboard</span>
@@ -108,13 +170,13 @@ export default function AdminProducts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading && products.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                     </TableCell>
                   </TableRow>
-                ) : products?.map((product) => (
+                ) : products.map((product) => (
                   <TableRow key={product.node.id}>
                     <TableCell>
                       <img src={product.node.images.edges[0]?.node.url} alt="" className="w-12 h-16 object-cover rounded" />
@@ -181,11 +243,37 @@ export default function AdminProducts() {
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="image" className="text-right font-sans text-xs uppercase tracking-wider">Image URL</Label>
+                    <Label className="text-right font-sans text-xs uppercase tracking-wider">Product Image</Label>
+                    <div className="col-span-3 flex items-center gap-4">
+                      {editingProduct?.image && (
+                        <img src={editingProduct.image} alt="Preview" className="w-16 h-20 object-cover rounded-lg border shadow-sm" />
+                      )}
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          ref={imageInputRef}
+                        />
+                        <Button
+                          variant="outline"
+                          className="w-full font-sans text-xs uppercase tracking-widest"
+                          onClick={() => imageInputRef.current?.click()}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload New Image
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="price" className="text-right font-sans text-xs uppercase tracking-wider">Price</Label>
                     <Input
-                      id="image"
-                      value={editingProduct?.image || ""}
-                      onChange={(e) => setEditingProduct({...editingProduct, image: e.target.value})}
+                      id="price"
+                      type="text"
+                      value={editingProduct?.price || ""}
+                      onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
                       className="col-span-3"
                     />
                   </div>

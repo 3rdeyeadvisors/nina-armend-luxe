@@ -8,12 +8,29 @@ import { Button } from '@/components/ui/button';
 import { ThreeSixtyViewer } from '@/components/ThreeSixtyViewer';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Heart, Minus, Plus, Loader2, ChevronLeft, Truck, Shield, RotateCcw, Box } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 const ProductPage = () => {
   const { handle } = useParams<{ handle: string }>();
   const { data: product, isLoading, error } = useProduct(handle || '');
+
+  useEffect(() => {
+    if (product) {
+      const views = JSON.parse(localStorage.getItem('product_views') || '{}');
+      views[product.id] = (views[product.id] || 0) + 1;
+      localStorage.setItem('product_views', JSON.stringify(views));
+
+      // Also store product info for the dashboard
+      const productInfo = JSON.parse(localStorage.getItem('tracked_products') || '{}');
+      productInfo[product.id] = {
+        title: product.title,
+        image: product.images.edges[0]?.node.url,
+        price: product.priceRange.minVariantPrice.amount
+      };
+      localStorage.setItem('tracked_products', JSON.stringify(productInfo));
+    }
+  }, [product]);
   const addItem = useCartStore(state => state.addItem);
   const isCartLoading = useCartStore(state => state.isLoading);
   const { toggleItem, isInWishlist } = useWishlistStore();
