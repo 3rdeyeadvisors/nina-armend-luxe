@@ -26,7 +26,7 @@ export default function AdminCustomers() {
         <div className="flex flex-col gap-8 lg:gap-12">
           <AdminSidebar />
 
-          <main className="flex-1 space-y-8 bg-card p-8 rounded-2xl border border-border/50 shadow-sm">
+          <main className="flex-1 space-y-8 bg-card p-4 sm:p-8 rounded-2xl border border-border/50 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h1 className="font-serif text-3xl">Customer Audience</h1>
               <div className="bg-primary/10 px-4 py-2 rounded-lg border border-primary/20">

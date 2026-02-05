@@ -132,7 +132,7 @@ export default function AdminPOS() {
         <div className="flex flex-col gap-8 lg:gap-12">
           <AdminSidebar />
 
-          <main className="flex-1 flex flex-col lg:flex-row gap-8 h-[calc(100vh-280px)] min-h-[600px]">
+          <main className="flex-1 flex flex-col lg:flex-row gap-8 lg:h-[calc(100vh-280px)] lg:min-h-[600px]">
             <div className="flex-1 flex flex-col space-y-4">
               <div className="flex items-center gap-4 bg-card border rounded-xl px-4 py-3 shadow-sm">
                 <Search className="h-5 w-5 text-muted-foreground" />

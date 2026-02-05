@@ -29,7 +29,7 @@ export default function AdminSettings() {
           <AdminSidebar />
 
           {/* Main Content */}
-          <main className="w-full space-y-8">
+          <main className="w-full space-y-8 px-0 sm:px-4">
             <div className="flex flex-col items-center text-center space-y-2">
               <h1 className="font-serif text-4xl tracking-tight">Store Settings</h1>
               <p className="text-muted-foreground text-sm max-w-md">Configure your store's global parameters and administrative preferences</p>
