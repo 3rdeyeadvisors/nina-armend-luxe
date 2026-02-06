@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export const AnnouncementBar = () => {
   return (
-    <div className="bg-primary text-primary-foreground py-2 overflow-hidden flex whitespace-nowrap">
+    <div className="bg-primary text-primary-foreground h-8 md:h-10 overflow-hidden flex items-center whitespace-nowrap border-b border-primary-foreground/10">
       <motion.div
         animate={{
           x: [0, "-50%"],

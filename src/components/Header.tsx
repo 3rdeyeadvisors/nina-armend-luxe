@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { useWishlistStore } from '@/stores/wishlistStore';
 import { useAuthStore, ADMIN_EMAIL } from '@/stores/authStore';
 import { Input } from '@/components/ui/input';
+import { fetchProducts, type ShopifyProduct } from '@/lib/shopify';
+import { useEffect } from 'react';
 
 const navLinks = [
   { name: 'Shop All', href: '/shop' },
@@ -24,12 +26,34 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<ShopifyProduct[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const wishlistItems = useWishlistStore(state => state.items);
   const { user, isAuthenticated } = useAuthStore();
 
   const isAdmin = isAuthenticated && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchQuery.trim().length >= 2) {
+        setIsSearching(true);
+        try {
+          const results = await fetchProducts(5, searchQuery);
+          setSuggestions(results);
+        } catch (error) {
+          console.error('Search failed:', error);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSuggestions([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,11 +70,11 @@ export function Header() {
       <nav className="container mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-16 md:h-24 gap-4">
           {/* Left section - Mobile menu / Desktop nav */}
-          <div className="flex-1 flex items-center justify-start gap-4 md:gap-8 overflow-hidden">
+          <div className="flex-1 flex items-center justify-start gap-4 md:gap-8">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="md:hidden"
+              className="md:hidden shrink-0"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -58,7 +82,7 @@ export function Header() {
             </Button>
 
             {/* Desktop navigation - left */}
-            <div className="hidden lg:flex items-center gap-6 pr-4">
+            <div className="hidden lg:flex items-center gap-4 xl:gap-6 pr-2 xl:pr-4">
               {navLinks.slice(0, 3).map((link) => (
                 <Link
                   key={link.name}
@@ -81,7 +105,7 @@ export function Header() {
           {/* Right section - Icons */}
           <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
             {/* Desktop navigation - right */}
-            <div className="hidden xl:flex items-center gap-4">
+            <div className="hidden 2xl:flex items-center gap-4">
               {navLinks.slice(3).map((link) => (
                 <Link
                   key={link.name}
@@ -122,10 +146,11 @@ export function Header() {
               </Link>
 
               {isAdmin && (
-                <Link to="/admin" className="hidden md:block">
-                  <Button variant="outline" size="sm" className="flex gap-2 border-primary/20 text-primary hover:bg-primary/5 ml-2 font-sans text-[10px] uppercase tracking-widest">
+                <Link to="/admin" className="hidden lg:block">
+                  <Button variant="outline" size="sm" className="flex gap-2 border-primary/20 text-primary hover:bg-primary/5 ml-1 xl:ml-2 font-sans text-[10px] uppercase tracking-widest">
                     <LayoutDashboard className="h-3 w-3" />
-                    Admin Dashboard
+                    <span className="hidden xl:inline">Admin Dashboard</span>
+                    <span className="xl:hidden">Admin</span>
                   </Button>
                 </Link>
               )}
@@ -145,25 +170,84 @@ export function Header() {
               className="overflow-hidden bg-background/95 backdrop-blur-md border-t border-border/30"
             >
               <div className="container mx-auto px-4 md:px-8 py-4">
-                <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    autoFocus
-                    placeholder="Search our collection..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-12 rounded-full bg-secondary/30 border-primary/10 focus:ring-primary font-sans text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent"
-                    onClick={() => setSearchOpen(false)}
-                  >
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </form>
+                <div className="relative max-w-2xl mx-auto">
+                  <form onSubmit={handleSearch} className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      autoFocus
+                      placeholder="Search our collection..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-12 h-12 rounded-full bg-secondary/30 border-primary/10 focus:ring-primary font-sans text-sm"
+                    />
+                    {isSearching && (
+                      <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                        <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent"
+                      onClick={() => setSearchOpen(false)}
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </form>
+
+                  {/* Search Suggestions Dropdown */}
+                  <AnimatePresence>
+                    {suggestions.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-background border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-[60] backdrop-blur-xl"
+                      >
+                        <div className="p-2">
+                          <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground px-4 py-2">Suggested Products</p>
+                          {suggestions.map((product) => (
+                            <Link
+                              key={product.node.id}
+                              to={`/product/${product.node.handle}`}
+                              onClick={() => {
+                                setSearchOpen(false);
+                                setSearchQuery('');
+                              }}
+                              className="flex items-center gap-4 p-3 hover:bg-primary/5 rounded-xl transition-colors group"
+                            >
+                              <div className="h-12 w-10 shrink-0 overflow-hidden rounded-md border border-border/50">
+                                <img
+                                  src={product.node.images.edges[0]?.node.url}
+                                  alt={product.node.title}
+                                  className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-sans font-medium truncate group-hover:text-primary transition-colors">
+                                  {product.node.title}
+                                </h4>
+                                <p className="text-xs text-muted-foreground font-serif">
+                                  {product.node.priceRange.minVariantPrice.currencyCode} {parseFloat(product.node.priceRange.minVariantPrice.amount).toFixed(2)}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                          <div className="border-t border-border/30 mt-2 p-2">
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-start text-xs font-sans text-primary hover:bg-primary/5"
+                              onClick={handleSearch}
+                            >
+                              View all results for "{searchQuery}"
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
           )}

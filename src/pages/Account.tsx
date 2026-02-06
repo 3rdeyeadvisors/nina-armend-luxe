@@ -49,6 +49,19 @@ export default function Account() {
   const { user, isAuthenticated, login, signup, logout, updateProfile, resetPassword, deleteAccount } = useAuthStore();
   const { items: wishlistItems, removeItem: removeFromWishlist } = useWishlistStore();
   const [showPassword, setShowPassword] = useState(false);
+
+  const points = user?.points || 0;
+  const getTier = (pts: number) => {
+    if (pts >= 1000) return 'Gold';
+    if (pts >= 500) return 'Silver';
+    return 'Bronze';
+  };
+
+  const nextTier = points >= 1000 ? 'Gold' : points >= 500 ? 'Gold' : 'Silver';
+  const nextTierPoints = points >= 1000 ? 1000 : points >= 500 ? 1000 : 500;
+  const pointsToNextTier = Math.max(0, nextTierPoints - points);
+  const currentTier = getTier(points);
+
   const [resetEmail, setResetEmail] = useState('');
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
@@ -338,11 +351,15 @@ export default function Account() {
 
                 <div className="mt-6 space-y-2 text-left">
                   <div className="flex justify-between text-[10px] font-sans tracking-wider uppercase">
-                    <span>Bronze Status</span>
-                    <span className="text-primary">{(user?.points || 0)} / 500</span>
+                    <span>{currentTier} Status</span>
+                    <span className="text-primary">{points} / {nextTierPoints}</span>
                   </div>
-                  <Progress value={((user?.points || 0) / 500) * 100} className="h-1.5" />
-                  <p className="text-[9px] text-muted-foreground text-center italic">250 points until Silver Status</p>
+                  <Progress value={(points / nextTierPoints) * 100} className="h-1.5" />
+                  <p className="text-[9px] text-muted-foreground text-center italic">
+                    {pointsToNextTier > 0
+                      ? `${pointsToNextTier} points until ${nextTier} Status`
+                      : 'You have reached Gold Status!'}
+                  </p>
                 </div>
               </CardContent>
               <div className="p-4 border-t space-y-2">
@@ -565,7 +582,7 @@ export default function Account() {
                          <Gift className="h-32 w-32 rotate-12" />
                       </div>
                       <CardHeader className="relative z-10">
-                        <Badge className="w-fit mb-2 bg-primary text-primary-foreground">Bronze Member</Badge>
+                        <Badge className="w-fit mb-2 bg-primary text-primary-foreground">{currentTier} Member</Badge>
                         <CardTitle className="font-serif text-3xl">Inner Circle Rewards</CardTitle>
                         <CardDescription className="text-foreground/70">You're on your way to exclusive Brazilian luxury perks.</CardDescription>
                       </CardHeader>
@@ -574,17 +591,17 @@ export default function Account() {
                             <div className="flex justify-between items-end mb-4">
                                <div>
                                   <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground mb-1">Available Points</p>
-                                  <p className="text-4xl font-serif font-bold text-primary">{user?.points || 0}</p>
+                                  <p className="text-4xl font-serif font-bold text-primary">{points}</p>
                                </div>
                                <div className="text-right">
                                   <p className="text-[10px] font-sans tracking-widest uppercase text-muted-foreground mb-1">Lifetime Earned</p>
-                                  <p className="text-xl font-serif font-medium">1,250</p>
+                                  <p className="text-xl font-serif font-medium">{Math.max(1250, points + 500).toLocaleString()}</p>
                                </div>
                             </div>
-                            <Progress value={((user?.points || 0) / 1000) * 100} className="h-2 mb-2" />
+                            <Progress value={(points / nextTierPoints) * 100} className="h-2 mb-2" />
                             <div className="flex justify-between text-[10px] font-sans tracking-widest uppercase text-muted-foreground">
                                <span>0</span>
-                               <span>1000 pts for $50 reward</span>
+                               <span>{nextTierPoints} pts for ${nextTierPoints === 500 ? '25' : '50'} reward</span>
                             </div>
                          </div>
 
