@@ -183,44 +183,81 @@ export default function AdminDashboard() {
               </Link>
             </div>
 
-            {/* Data Integration Section */}
-            <Card className="border-dashed border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors">
-              <CardContent className="flex flex-col items-center justify-center text-center py-10">
-                <div className="p-4 bg-background rounded-full mb-4 shadow-sm">
-                  <Upload className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="font-serif text-xl mb-2">Inventory Spreadsheet Upload</h3>
-                <p className="text-muted-foreground text-sm mb-6 max-w-md text-center">
-                  Drag and drop your product CSV or Excel file here. Our AI will automatically sync your inventory and suggest optimizations.
-                </p>
-                <div className="flex gap-3">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={handleFileUpload}
-                  />
-                  <Button
-                    variant="outline"
-                    className="font-sans"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                    {isUploading ? 'Uploading...' : 'Select File'}
-                  </Button>
-                  <Button
-                    className="bg-primary font-sans"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Analyze with AI
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Data Integration Section */}
+              <Card className="border-dashed border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors h-full flex items-center justify-center">
+                <CardContent className="flex flex-col items-center justify-center text-center py-8">
+                  <div className="p-3 bg-background rounded-full mb-3 shadow-sm">
+                    <Upload className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-serif text-lg mb-1.5">Spreadsheet Sync</h3>
+                  <p className="text-muted-foreground text-[13px] mb-5 max-w-xs text-center">
+                    Sync your product inventory with a CSV or Excel file. AI-powered optimization included.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileUpload}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="font-sans text-[10px] uppercase tracking-widest h-9"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Upload className="h-3 w-3 mr-2" />}
+                      Select
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-primary font-sans text-[10px] uppercase tracking-widest h-9"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      <Brain className="h-3 w-3 mr-2" />
+                      AI Analyze
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions / Store Status */}
+              <Card className="border-primary/10 bg-secondary/5 h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-serif text-lg">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-3 pt-2">
+                   <Button variant="outline" className="h-16 flex flex-col gap-1 border-primary/10 hover:bg-primary/5" asChild>
+                     <Link to="/admin/products">
+                       <Package className="h-4 w-4 text-primary" />
+                       <span className="text-[10px] uppercase tracking-widest">Add Product</span>
+                     </Link>
+                   </Button>
+                   <Button variant="outline" className="h-16 flex flex-col gap-1 border-primary/10 hover:bg-primary/5" asChild>
+                     <Link to="/admin/pos">
+                       <DollarSign className="h-4 w-4 text-primary" />
+                       <span className="text-[10px] uppercase tracking-widest">New Sale</span>
+                     </Link>
+                   </Button>
+                   <Button variant="outline" className="h-16 flex flex-col gap-1 border-primary/10 hover:bg-primary/5" asChild>
+                     <Link to="/admin/customers">
+                       <Users className="h-4 w-4 text-primary" />
+                       <span className="text-[10px] uppercase tracking-widest">View Audience</span>
+                     </Link>
+                   </Button>
+                   <Button variant="outline" className="h-16 flex flex-col gap-1 border-primary/10 hover:bg-primary/5" asChild>
+                     <Link to="/admin/settings">
+                       <Sparkles className="h-4 w-4 text-primary" />
+                       <span className="text-[10px] uppercase tracking-widest">Settings</span>
+                     </Link>
+                   </Button>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* AI Insights Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
