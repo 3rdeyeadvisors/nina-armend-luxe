@@ -25,13 +25,15 @@ interface AuthStore {
   deleteAccount: (email: string) => boolean;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
+  updateUserRole: (email: string, role: string) => void;
+  addUser: (user: AuthUser) => void;
 }
 
 /**
- * SECURITY NOTE: The admin email is managed via environment variables.
- * In production, admin privileges should be managed via backend roles and verified with tokens.
+ * SECURITY NOTE: The owner/admin email for Lydia.
+ * In production, admin privileges should be managed via backend roles.
  */
-export const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'lydia@ninaarmend.co.site';
+export const ADMIN_EMAIL = 'lydia@ninaarmend.co.site';
 
 const DEFAULT_ADMIN: AuthUser = {
   name: 'Lydia',
@@ -141,6 +143,26 @@ export const useAuthStore = create<AuthStore>()(
           u.email.toLowerCase() === state.user?.email.toLowerCase() ? { ...u, ...updates } : u
         );
         return { user: updatedUser, users: updatedUsers };
+      }),
+
+      updateUserRole: (email, role) => set((state) => {
+        const updatedUsers = state.users.map(u =>
+          u.email.toLowerCase() === email.toLowerCase() ? { ...u, role } : u
+        );
+
+        // Also update the current user if they are the one being changed
+        const updatedUser = state.user?.email.toLowerCase() === email.toLowerCase()
+          ? { ...state.user, role }
+          : state.user;
+
+        return { users: updatedUsers, user: updatedUser };
+      }),
+
+      addUser: (newUser) => set((state) => {
+        if (state.users.find(u => u.email.toLowerCase() === newUser.email.toLowerCase())) {
+          return state;
+        }
+        return { users: [...state.users, newUser] };
       }),
     }),
     {

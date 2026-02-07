@@ -317,51 +317,56 @@ export default function AdminDashboard() {
               </Card>
 
               {/* AI Chat */}
-              <Card className="border-primary/20">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5 text-primary" />
+              <Card className="border-primary/20 bg-gradient-to-b from-background to-primary/5">
+                <CardHeader className="pb-3 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="p-2 bg-primary/10 rounded-full">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                    </div>
                     <CardTitle className="font-serif text-lg">AI Assistant</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-col h-[300px] md:h-[350px]">
-                  <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin">
+                <CardContent className="flex flex-col h-[400px]">
+                  <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 scrollbar-thin">
                     {chatMessages.map((msg, idx) => (
-                      <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] p-3 rounded-xl text-sm font-sans ${
+                      <div key={idx} className="flex justify-center px-4">
+                        <div className={`max-w-[90%] p-4 rounded-2xl text-sm font-sans text-center transition-all duration-300 ${
                           msg.role === 'user' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-secondary/50 border'
+                            ? 'bg-primary text-primary-foreground shadow-md'
+                            : 'bg-background border border-primary/10 shadow-sm'
                         }`}>
                           {msg.text}
                         </div>
                       </div>
                     ))}
                     {isAiTyping && (
-                      <div className="flex justify-start">
-                        <div className="bg-secondary/50 border p-3 rounded-xl">
-                          <div className="flex gap-1">
-                            <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-                            <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-                            <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                      <div className="flex justify-center">
+                        <div className="bg-background border border-primary/10 p-3 rounded-full shadow-sm">
+                          <div className="flex gap-1.5 px-2">
+                            <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                            <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                            <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
                           </div>
                         </div>
                       </div>
                     )}
                     <div ref={chatEndRef} />
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Ask about sales, inventory, marketing..."
-                      className="flex-1 bg-secondary/30 border rounded-lg px-3 py-2 text-sm font-sans outline-none focus:ring-1 focus:ring-primary"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    />
-                    <Button size="icon" className="bg-primary" onClick={handleSendMessage}>
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
+                  <div className="flex flex-col items-center gap-3 mt-auto">
+                    <div className="flex w-full gap-2 bg-background border rounded-xl p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                      <input
+                        type="text"
+                        placeholder="Ask about store optimization..."
+                        className="flex-1 bg-transparent border-none px-3 py-2 text-sm font-sans outline-none"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                      />
+                      <Button size="icon" className="bg-primary hover:scale-105 transition-transform shrink-0" onClick={handleSendMessage}>
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 font-medium">Powered by Nina Intelligence</p>
                   </div>
                 </CardContent>
               </Card>

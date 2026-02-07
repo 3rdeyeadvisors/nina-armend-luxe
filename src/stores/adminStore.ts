@@ -56,6 +56,7 @@ interface AdminStore {
   updateProductOverride: (id: string, override: Partial<ProductOverride>) => void;
   deleteProduct: (id: string) => void;
   addCustomer: (customer: AdminCustomer) => void;
+  deleteCustomer: (id: string) => void;
   updateSettings: (settings: Partial<AdminSettings>) => void;
 }
 
@@ -138,6 +139,10 @@ export const useAdminStore = create<AdminStore>()(
 
       addCustomer: (customer) => set((state) => ({
         customers: [customer, ...state.customers]
+      })),
+
+      deleteCustomer: (id) => set((state) => ({
+        customers: state.customers.filter(c => c.id !== id)
       })),
 
       updateSettings: (newSettings) => set((state) => ({
