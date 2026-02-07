@@ -1,67 +1,128 @@
 
-# Fix Build Error & Improve Header Spacing
+# Fix Build Error, Spreadsheet Sync & Favicon Issues
 
-## Issues to Address
-
-### 1. Build Error (Critical)
-**File:** `src/pages/FittingRoom.tsx`, line 40
-
-The code calls `playSound('camera')` but the valid sound types are only `'click' | 'error' | 'remove' | 'success'`. This causes the TypeScript error.
-
-**Fix:** Change `playSound('camera')` to `playSound('click')` or `playSound('success')` on line 40.
+## Overview
+This plan addresses three issues: a build error in the Wishlist page, the spreadsheet upload not properly parsing your inventory file, and missing favicon images.
 
 ---
 
-### 2. Header Spacing Inconsistency
-**Problem:** When logged in as admin, an "Admin Dashboard" button appears on the right side of the header, making the layout asymmetrical. The logo is absolutely positioned in the center, but the visual weight of the left vs right sides becomes unbalanced.
+## Issue 1: Build Error in Wishlist.tsx
 
-**Current Layout:**
-- Left side: 3 nav links (`Shop All`, `Mix & Match`, `Fitting Room`)
-- Center: Logo (absolutely positioned, always centered)
-- Right side: 3 nav links + icons + **Admin Dashboard button** (when logged in)
+**Problem:** The Wishlist page creates a mock product object missing the required `sizes` property.
 
-**Solution:** Make the left and right flex containers equal width regardless of their content, ensuring the logo placeholder stays consistent.
+**Solution:** Add the `sizes` property to the object passed to `mapMockToShopify`.
 
-**Changes to `src/components/Header.tsx`:**
+**File:** `src/pages/Wishlist.tsx` (lines 33-42)
 
-1. **Left navigation group (line 85):** Remove `flex-1` and use a fixed minimum width that matches the right side structure
-   
-2. **Right navigation group (line 101):** Match the same fixed minimum width approach
-
-3. **Update both sides to use `basis-0 grow` pattern** - This ensures both sides take equal space regardless of content, keeping the center logo placeholder stable.
-
-**Updated structure:**
+Change from:
+```typescript
+product={mapMockToShopify({
+  id: item.id.replace('gid://shopify/Product/', ''),
+  title: item.title,
+  handle: item.handle,
+  price: parseFloat(item.price),
+  images: [item.image],
+  category: 'Top',
+  productType: 'Bikini',
+  colors: []
+})}
 ```
-|-- Left (basis-0 grow) --|-- Logo Placeholder (fixed width) --|-- Right (basis-0 grow) --|
-```
 
-With `basis-0 grow` on both sides, they will always be equal width, and the Admin Dashboard button won't shift the visual balance.
+Change to:
+```typescript
+product={mapMockToShopify({
+  id: item.id.replace('gid://shopify/Product/', ''),
+  title: item.title,
+  handle: item.handle,
+  price: parseFloat(item.price),
+  images: [item.image],
+  category: 'Top',
+  productType: 'Bikini',
+  colors: [],
+  sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL']
+})}
+```
 
 ---
 
-## Technical Implementation
+## Issue 2: Spreadsheet Sync Not Parsing Your Inventory File
 
-### File: `src/pages/FittingRoom.tsx`
-**Line 40:** Change `playSound('camera')` → `playSound('click')`
+**Problem:** Your Excel file has these columns:
+- `Item ID` → needs to map to `id`
+- `Item name` → needs to map to `title`  
+- `Price` → already maps to `price`
+- `Stock` → already maps to `inventory` (this works)
+- `Type` → needs to map to `productType`
+- `Collection` → can be used for collections/categories
 
-### File: `src/components/Header.tsx`
+**Solution:** Update the spreadsheet parser to recognize these additional column name variations.
 
-**Line 85:** Update left navigation container
+**File:** `src/lib/spreadsheet.ts`
+
+Expand the column name mappings to handle variations from your inventory file.
+
+---
+
+## Issue 3: Favicon Not Showing
+
+**Problem:** The `index.html` references these favicon files that don't exist:
+- `/assets/favicon-32x32.png`
+- `/assets/favicon-16x16.png`
+- `/assets/apple-touch-icon.png`
+
+**Solution:** You mentioned you uploaded favicons previously. To fix this:
+1. Please upload the favicon images again (I'll copy them to `public/assets/`)
+2. Or provide a URL to your favicon image and I'll update the references
+
+---
+
+## Technical Details
+
+### Spreadsheet Parser Updates (`src/lib/spreadsheet.ts`)
+
+Add mappings for your inventory file's column names:
+
 ```typescript
-// Before:
-<div className="flex items-center gap-3 xl:gap-6 2xl:gap-10 flex-1 justify-start overflow-hidden">
-
-// After:
-<div className="flex items-center gap-3 xl:gap-6 2xl:gap-10 basis-0 grow justify-start overflow-hidden">
+// Map common variations to standard keys
+if (['stock', 'qty', 'quantity'].includes(normalizedKey)) {
+  normalizedKey = 'inventory';
+}
+if (['item id', 'itemid', 'sku', 'product_id', 'productid'].includes(normalizedKey)) {
+  normalizedKey = 'id';
+}
+if (['item name', 'itemname', 'product_name', 'productname', 'name'].includes(normalizedKey)) {
+  normalizedKey = 'title';
+}
+if (['type', 'product type', 'producttype', 'category'].includes(normalizedKey)) {
+  normalizedKey = 'producttype';
+}
+if (['collection', 'collections'].includes(normalizedKey)) {
+  normalizedKey = 'collection';
+}
 ```
 
-**Line 101:** Update right navigation container
-```typescript
-// Before:
-<div className="flex items-center justify-end gap-2 xl:gap-4 2xl:gap-8 flex-1 overflow-hidden">
+### Spreadsheet Sync Hook Updates (`src/hooks/useSpreadsheetSync.ts`)
 
-// After:
-<div className="flex items-center justify-end gap-2 xl:gap-4 2xl:gap-8 basis-0 grow overflow-hidden">
-```
+Parse size from the `Item name` field (e.g., "White Top (XS)" → extract "XS" as the size).
 
-This `basis-0 grow` pattern is a standard CSS Flexbox technique that forces both sides to take equal remaining space, regardless of how much content is inside each. The Admin Dashboard button will be accommodated within the right side without pushing the center logo placeholder.
+Group items by base product name to aggregate inventory by size.
+
+---
+
+## What This Enables
+
+After these changes, when you upload your inventory Excel file:
+
+1. Products will be created/updated based on the `Item ID` and `Item name`
+2. Stock levels from the `Stock` column will populate inventory
+3. Prices from the `Price` column will be used
+4. The `Collection` column will be used for product categorization
+5. Sizes will be extracted from item names like "White Top (XS)"
+
+---
+
+## Next Steps After Approval
+
+1. I'll fix the build error first
+2. Update the spreadsheet parser
+3. For the favicon: please upload your favicon images or provide a URL
