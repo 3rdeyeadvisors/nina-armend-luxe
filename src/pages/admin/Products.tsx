@@ -3,11 +3,13 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit2, Trash2, Upload, Loader2, Sparkles } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Upload, Loader2, Sparkles, Download } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useProducts, type ShopifyProduct } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { useState, useMemo, useRef } from 'react';
+import { parseSpreadsheet } from '@/lib/spreadsheet';
+import { syncProductInventory } from '@/lib/productSync';
 import {
   Dialog,
   DialogContent,
@@ -36,10 +38,12 @@ export default function AdminProducts() {
   const { productOverrides, updateProductOverride, deleteProduct } = useAdminStore();
   const [editingProduct, setEditingProduct] = useState<Partial<ProductOverride> | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const products = useMemo(() => {
     if (!initialProducts) return [];
@@ -110,6 +114,46 @@ export default function AdminProducts() {
     });
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      toast.info(`Analyzing ${file.name}...`);
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = event.target?.result as ArrayBuffer;
+          const rows = parseSpreadsheet(data);
+          const updatedCount = syncProductInventory(rows, initialProducts, updateProductOverride, PRODUCT_SIZES);
+
+          setTimeout(() => {
+            setIsUploading(false);
+            toast.success(`Sync complete! ${updatedCount} products updated.`);
+          }, 1000);
+        } catch (error) {
+          console.error('Spreadsheet parsing failed:', error);
+          setIsUploading(false);
+          toast.error("Failed to parse spreadsheet. Please ensure it's a valid CSV or Excel file.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csvContent = "id,title,price,inventory,sizes,size_inventory\ngid://shopify/Product/1,Copacabana Top,85.00,50,XS|S|M|L|XL|2XL,XS:10|S:10|M:10|L:10|XL:5|2XL:5\ngid://shopify/Product/2,Copacabana Bottom,75.00,45,XS|S|M|L|XL|2XL,XS:8|S:8|M:8|L:8|XL:7|2XL:6\n";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nina_armend_inventory_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast.success("Template downloaded!");
+  };
+
   return (
     <div className="min-h-screen bg-secondary/20">
       <Header />
@@ -120,10 +164,36 @@ export default function AdminProducts() {
           <main className="flex-1 space-y-8 bg-card p-4 sm:p-8 rounded-2xl border border-border/50 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h1 className="font-serif text-3xl">Products</h1>
-              <Button className="bg-primary" onClick={startAdding}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Product
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".csv, .xlsx, .xls"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  {isUploading ? 'Syncing...' : 'Sync Spreadsheet'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-primary h-10 w-10"
+                  onClick={downloadTemplate}
+                  title="Download Template"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button className="bg-primary" onClick={startAdding}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Product
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center gap-4 bg-background border rounded-lg px-3 py-2">

@@ -11,11 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAdminStore } from '@/stores/adminStore';
 import { parseSpreadsheet } from '@/lib/spreadsheet';
 import { useProducts } from '@/hooks/useProducts';
 import { PRODUCT_SIZES } from '@/lib/constants';
+import { syncProductInventory } from '@/lib/productSync';
 
 const data = [
   { name: 'Mon', sales: 4000, traffic: 2400 },
@@ -28,6 +30,7 @@ const data = [
 ];
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const { data: allProducts } = useProducts(200);
   const { orders, customers, updateProductOverride } = useAdminStore();
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([
@@ -116,62 +119,7 @@ export default function AdminDashboard() {
         try {
           const data = event.target?.result as ArrayBuffer;
           const rows = parseSpreadsheet(data);
-          let updatedCount = 0;
-
-          rows.forEach((row, index) => {
-            const rawId = row.id ? String(row.id) : '';
-            const handle = row.handle ? String(row.handle) : '';
-            const title = row.title ? String(row.title) : '';
-
-            if (rawId || handle || title) {
-              // 1. Find existing product for matching
-              let existingProduct = allProducts?.find(p =>
-                p.node.id === rawId ||
-                p.node.id === `gid://shopify/Product/${rawId}` ||
-                (handle && p.node.handle === handle) ||
-                (title && p.node.title.toLowerCase() === title.toLowerCase())
-              );
-
-              const id = existingProduct
-                ? existingProduct.node.id
-                : (rawId
-                    ? (rawId.startsWith('gid://') ? rawId : `gid://shopify/Product/${rawId}`)
-                    : `sync-${index}`);
-
-              // 2. Determine sizes
-              const sizes = row.sizes
-                ? String(row.sizes).split('|').map((s: string) => s.trim().toUpperCase())
-                : (existingProduct?.node.options.find(o => o.name === 'Size')?.values);
-
-              // 3. Handle size inventory
-              let sizeInventory: Record<string, number> | undefined = undefined;
-              if (row.size_inventory) {
-                sizeInventory = {};
-                String(row.size_inventory).split('|').forEach((part: string) => {
-                  const [s, q] = part.split(':');
-                  if (s && q) sizeInventory![s.trim().toUpperCase()] = parseInt(q.trim()) || 0;
-                });
-              } else if (row.inventory !== undefined) {
-                // Auto-distribute total inventory if size_inventory is missing
-                const total = parseInt(row.inventory) || 0;
-                const targetSizes = sizes || [...PRODUCT_SIZES];
-                sizeInventory = {};
-                const perSize = Math.floor(total / (targetSizes.length || 1));
-                targetSizes.forEach((s, idx) => {
-                  sizeInventory![s] = idx === targetSizes.length - 1 ? total - (perSize * (targetSizes.length - 1)) : perSize;
-                });
-              }
-
-              updateProductOverride(id, {
-                title: row.title ? String(row.title) : undefined,
-                price: row.price ? String(row.price) : undefined,
-                inventory: row.inventory !== undefined ? parseInt(row.inventory) : undefined,
-                sizes: sizes,
-                sizeInventory: sizeInventory,
-              });
-              updatedCount++;
-            }
-          });
+          const updatedCount = syncProductInventory(rows, allProducts, updateProductOverride, PRODUCT_SIZES);
 
           setTimeout(() => {
             setIsUploading(false);
@@ -180,6 +128,11 @@ export default function AdminDashboard() {
               role: 'ai',
               text: `I've finished analyzing ${file.name}. I've successfully synced inventory and pricing for ${updatedCount} items from your spreadsheet.`
             }]);
+
+            // Redirect to products page to see changes
+            setTimeout(() => {
+              navigate('/admin/products');
+            }, 1000);
           }, 1500);
         } catch (error) {
           console.error('Spreadsheet parsing failed:', error);
