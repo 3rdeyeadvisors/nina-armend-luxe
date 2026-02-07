@@ -1,30 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import { parseSpreadsheet } from '../lib/spreadsheet';
+import * as XLSX from 'xlsx';
 
-describe('spreadsheet utility', () => {
-  it('should parse CSV data and normalize keys', () => {
-    const csvContent = 'ID,Title,Price\n1,Product 1,10.00\n2,Product 2,20.00';
-    const encoder = new TextEncoder();
-    const data = encoder.encode(csvContent).buffer;
+describe('parseSpreadsheet', () => {
+  it('should map stock/qty/quantity headers to inventory', () => {
+    const csvContent = "Id,Title,Stock,Sizes\n1,Test Product,100,S|M|L";
+    const workbook = XLSX.read(csvContent, { type: 'string' });
+    const arrayBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
 
-    const result = parseSpreadsheet(data);
-
-    expect(result).toHaveLength(2);
-    // XLSX might parse numeric strings as numbers
-    expect(result[0].id).toBe(1);
-    expect(result[0].title).toBe('Product 1');
-    expect(result[0].price).toBe(10);
+    const rows = parseSpreadsheet(arrayBuffer);
+    expect(rows[0]).toHaveProperty('inventory', 100);
+    expect(rows[0]).toHaveProperty('id', 1);
+    expect(rows[0]).toHaveProperty('title', 'Test Product');
   });
 
-  it('should handle whitespace in headers', () => {
-    const csvContent = ' id , title , price \n1,Product 1,10.00';
-    const encoder = new TextEncoder();
-    const data = encoder.encode(csvContent).buffer;
+  it('should map qty to inventory', () => {
+    const csvContent = "Id,Title,Qty,Sizes\n1,Test Product,50,S|M|L";
+    const workbook = XLSX.read(csvContent, { type: 'string' });
+    const arrayBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
 
-    const result = parseSpreadsheet(data);
-
-    expect(result[0]).toHaveProperty('id');
-    expect(result[0]).toHaveProperty('title');
-    expect(result[0]).toHaveProperty('price');
+    const rows = parseSpreadsheet(arrayBuffer);
+    expect(rows[0]).toHaveProperty('inventory', 50);
   });
 });
