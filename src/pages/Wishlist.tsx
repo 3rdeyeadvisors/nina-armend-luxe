@@ -1,11 +1,44 @@
-
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { useWishlistStore } from '@/stores/wishlistStore';
-import { mapMockToShopify } from '@/lib/shopify';
 import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
+import { Product } from '@/hooks/useProducts';
+
+// Helper to convert wishlist item to Product format
+function wishlistItemToProduct(item: { id: string; title: string; handle: string; price: string; image: string }): Product {
+  return {
+    node: {
+      id: item.id,
+      title: item.title,
+      description: '',
+      handle: item.handle,
+      productType: 'Bikini',
+      priceRange: {
+        minVariantPrice: {
+          amount: item.price,
+          currencyCode: 'USD',
+        },
+      },
+      images: {
+        edges: [{ node: { url: item.image, altText: item.title } }],
+      },
+      variants: {
+        edges: ['XS', 'S', 'M', 'L', 'XL', '2XL'].map(size => ({
+          node: {
+            id: `${item.id}-${size.toLowerCase()}`,
+            title: size,
+            price: { amount: item.price, currencyCode: 'USD' },
+            availableForSale: true,
+            selectedOptions: [{ name: 'Size', value: size }],
+          },
+        })),
+      },
+      options: [{ name: 'Size', values: ['XS', 'S', 'M', 'L', 'XL', '2XL'] }],
+    },
+  };
+}
 
 export default function Wishlist() {
   const items = useWishlistStore(state => state.items);
@@ -30,17 +63,7 @@ export default function Wishlist() {
               {items.map((item, index) => (
                 <ProductCard
                   key={item.id}
-                  product={mapMockToShopify({
-                    id: item.id.replace('gid://shopify/Product/', ''),
-                    title: item.title,
-                    handle: item.handle,
-                    price: parseFloat(item.price),
-                    images: [item.image],
-                    category: 'Top',
-                    productType: 'Bikini',
-                    colors: [],
-                    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL']
-                  })}
+                  product={wishlistItemToProduct(item)}
                   index={index}
                 />
               ))}

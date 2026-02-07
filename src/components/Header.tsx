@@ -3,14 +3,13 @@ import { Logo } from './Logo';
 import { CartDrawer } from './CartDrawer';
 import { AnnouncementBar } from './AnnouncementBar';
 import { Menu, X, Search, User, Heart, LayoutDashboard } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useWishlistStore } from '@/stores/wishlistStore';
 import { useAuthStore, ADMIN_EMAIL } from '@/stores/authStore';
 import { Input } from '@/components/ui/input';
-import { fetchProducts, type ShopifyProduct } from '@/lib/shopify';
-import { useEffect } from 'react';
+import { useProducts, type Product } from '@/hooks/useProducts';
 
 const navLinks = [
   { name: 'Shop All', href: '/shop' },
@@ -25,34 +24,36 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<ShopifyProduct[]>([]);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const wishlistItems = useWishlistStore(state => state.items);
   const { user, isAuthenticated } = useAuthStore();
+  
+  // Use the products hook for search
+  const { data: allProducts } = useProducts(50);
 
   const isAdmin = isAuthenticated && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (searchQuery.trim().length >= 2) {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 2 && allProducts) {
         setIsSearching(true);
-        try {
-          const results = await fetchProducts(5, searchQuery);
-          setSuggestions(results);
-        } catch (error) {
-          console.error('Search failed:', error);
-        } finally {
-          setIsSearching(false);
-        }
+        const q = searchQuery.toLowerCase();
+        const filtered = allProducts.filter(p => 
+          p.node.title.toLowerCase().includes(q) ||
+          (p.node.productType || '').toLowerCase().includes(q)
+        ).slice(0, 5);
+        setSuggestions(filtered);
+        setIsSearching(false);
       } else {
         setSuggestions([]);
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, allProducts]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

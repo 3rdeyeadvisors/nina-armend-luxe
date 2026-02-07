@@ -1,11 +1,11 @@
-import { ShopifyProduct } from './shopify';
+import { Product } from '@/hooks/useProducts';
 import { ProductOverride } from '@/stores/adminStore';
 import { PRODUCT_SIZES } from './constants';
 
 export function mergeProductsWithOverrides(
-  initialProducts: ShopifyProduct[],
+  initialProducts: Product[],
   productOverrides: Record<string, ProductOverride>
-): ShopifyProduct[] {
+): Product[] {
   if (!initialProducts) return [];
 
   const overridenProducts = initialProducts.map(p => {
@@ -41,7 +41,7 @@ export function mergeProductsWithOverrides(
           variants: {
             edges: sizes.map(size => ({
               node: {
-                id: `gid://shopify/ProductVariant/${p.node.id}-${size.toLowerCase()}`,
+                id: `${p.node.id}-${size.toLowerCase()}`,
                 title: size,
                 price: { amount: override.price || p.node.priceRange.minVariantPrice.amount, currencyCode: "USD" },
                 availableForSale: true,
@@ -77,7 +77,7 @@ export function mergeProductsWithOverrides(
           variants: {
             edges: sizes.map(size => ({
               node: {
-                id: `gid://shopify/ProductVariant/${o.id}-${size.toLowerCase()}`,
+                id: `${o.id}-${size.toLowerCase()}`,
                 title: size,
                 price: { amount: o.price, currencyCode: "USD" },
                 availableForSale: true,
@@ -88,15 +88,15 @@ export function mergeProductsWithOverrides(
           options: [{ name: "Size", values: sizes }]
         }
       };
-    }) as ShopifyProduct[];
+    }) as Product[];
 
   return [...overridenProducts, ...newProducts];
 }
 
 export function mergeProductWithOverride(
-  product: ShopifyProduct['node'] | null,
+  product: Product['node'] | null,
   productOverrides: Record<string, ProductOverride>
-): ShopifyProduct['node'] | null {
+): Product['node'] | null {
   if (!product) return null;
 
   const override = productOverrides[product.id];
@@ -131,7 +131,7 @@ export function mergeProductWithOverride(
     variants: {
       edges: sizes.map(size => ({
         node: {
-          id: `gid://shopify/ProductVariant/${product.id}-${size.toLowerCase()}`,
+          id: `${product.id}-${size.toLowerCase()}`,
           title: size,
           price: { amount: override.price || product.priceRange.minVariantPrice.amount, currencyCode: "USD" },
           availableForSale: true,
