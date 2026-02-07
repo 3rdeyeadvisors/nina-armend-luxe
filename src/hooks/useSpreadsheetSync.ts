@@ -50,83 +50,103 @@ export function useSpreadsheetSync() {
       try {
         const data = event.target?.result as ArrayBuffer;
         const rows = parseSpreadsheet(data);
+        
+        // Group rows by base product name (extract size from title like "White Top (XS)")
+        const productGroups: Record<string, {
+          baseTitle: string;
+          id: string;
+          price: string;
+          productType: string;
+          collection: string;
+          sizeInventory: Record<string, number>;
+          image?: string;
+          description?: string;
+        }> = {};
+
+        rows.forEach((row) => {
+          const title = row.title ? String(row.title) : '';
+          if (!title) return;
+
+          // Extract size from title like "White Top (XS)" or "One-Piece (2XL)"
+          const sizeMatch = title.match(/\(([^)]+)\)$/);
+          const size = sizeMatch ? sizeMatch[1].toUpperCase() : null;
+          const baseTitle = sizeMatch ? title.replace(/\s*\([^)]+\)$/, '').trim() : title;
+          
+          // Create a unique key for grouping (baseTitle + collection)
+          const groupKey = `${baseTitle}-${row.collection || 'default'}`;
+          
+          if (!productGroups[groupKey]) {
+            productGroups[groupKey] = {
+              baseTitle,
+              id: row.id ? String(row.id) : `sync-${Object.keys(productGroups).length}`,
+              price: row.price ? String(row.price).replace(/[^0-9.]/g, '') : '0.00',
+              productType: row.producttype || row.type || 'Bikini',
+              collection: row.collection || '',
+              sizeInventory: {},
+              image: row.image,
+              description: row.description
+            };
+          }
+
+          // Add size inventory
+          if (size) {
+            const stock = row.inventory !== undefined ? parseInt(row.inventory) || 0 : 0;
+            productGroups[groupKey].sizeInventory[size] = 
+              (productGroups[groupKey].sizeInventory[size] || 0) + stock;
+          }
+        });
+
         let updatedCount = 0;
 
-        rows.forEach((row, index) => {
-          const rawId = row.id ? String(row.id) : '';
-          const handle = row.handle ? String(row.handle) : '';
-          const title = row.title ? String(row.title) : '';
+        Object.values(productGroups).forEach((product) => {
+          // Find existing product for matching
+          let existingProduct = allProducts?.find(p =>
+            p.node.id === product.id ||
+            p.node.id === `gid://shopify/Product/${product.id}` ||
+            p.node.title.toLowerCase() === product.baseTitle.toLowerCase()
+          );
 
-          if (rawId || handle || title) {
-            // 1. Find existing product for matching
-            let existingProduct = allProducts?.find(p =>
-              p.node.id === rawId ||
-              p.node.id === `gid://shopify/Product/${rawId}` ||
-              (handle && p.node.handle === handle) ||
-              (title && p.node.title.toLowerCase() === title.toLowerCase())
-            );
+          const id = existingProduct
+            ? existingProduct.node.id
+            : (product.id.startsWith('gid://') ? product.id : `gid://shopify/Product/${product.id}`);
 
-            const id = existingProduct
-              ? existingProduct.node.id
-              : (rawId
-                  ? (rawId.startsWith('gid://') ? rawId : `gid://shopify/Product/${rawId}`)
-                  : `sync-${index}`);
+          // Get sizes from inventory or use defaults
+          const sizes = Object.keys(product.sizeInventory).length > 0
+            ? Object.keys(product.sizeInventory)
+            : [...PRODUCT_SIZES];
 
-            // 2. Determine sizes
-            const sizes = row.sizes
-              ? String(row.sizes).split('|').map((s: string) => s.trim().toUpperCase())
-              : (existingProduct?.node.options.find(o => o.name === 'Size')?.values);
+          // Calculate total inventory
+          const totalInventory = Object.values(product.sizeInventory).reduce((sum, qty) => sum + qty, 0);
 
-            // 3. Handle size inventory
-            let sizeInventory: Record<string, number> | undefined = undefined;
-            if (row.size_inventory) {
-              sizeInventory = {};
-              String(row.size_inventory).split('|').forEach((part: string) => {
-                const [s, q] = part.split(':');
-                if (s && q) sizeInventory![s.trim().toUpperCase()] = parseInt(q.trim()) || 0;
-              });
-            } else if (row.inventory !== undefined) {
-              // Auto-distribute total inventory if size_inventory is missing
-              const total = parseInt(row.inventory) || 0;
-              const targetSizes = sizes || [...PRODUCT_SIZES];
-              sizeInventory = {};
-              const perSize = Math.floor(total / (targetSizes.length || 1));
-              targetSizes.forEach((s, idx) => {
-                sizeInventory![s] = idx === targetSizes.length - 1 ? total - (perSize * (targetSizes.length - 1)) : perSize;
-              });
+          // Handle Image
+          let image = existingProduct?.node.images.edges[0]?.node.url || 
+            "https://images.unsplash.com/photo-1585924756944-b82af627eca9?auto=format&fit=crop&q=80&w=800";
+          if (product.image) {
+            if (imageMap[product.image]) {
+              image = imageMap[product.image];
+            } else if (product.image.startsWith('http')) {
+              image = product.image;
             }
-
-            // 4. Handle Image (check if it matches an uploaded file first)
-            let image = existingProduct?.node.images.edges[0]?.node.url || "https://images.unsplash.com/photo-1585924756944-b82af627eca9?auto=format&fit=crop&q=80&w=800";
-            if (row.image) {
-              const rowImageStr = String(row.image);
-              if (imageMap[rowImageStr]) {
-                image = imageMap[rowImageStr];
-              } else if (rowImageStr.startsWith('http')) {
-                image = rowImageStr;
-              }
-            }
-
-            // 5. Sanitize price
-            let price = row.price ? String(row.price).replace(/[^0-9.]/g, '') : (existingProduct?.node.priceRange.minVariantPrice.amount || "0.00");
-
-            updateProductOverride(id, {
-              title: row.title ? String(row.title) : (existingProduct?.node.title || "New Product"),
-              price: price,
-              inventory: row.inventory !== undefined ? parseInt(row.inventory) : (existingProduct ? undefined : 0),
-              sizes: sizes,
-              sizeInventory: sizeInventory,
-              image: image,
-              description: row.description ? String(row.description) : (existingProduct?.node.description || "New luxury swimwear piece synced via inventory spreadsheet."),
-              productType: row.category || row.type || row.product_type || row.producttype || (existingProduct?.node.productType || "")
-            });
-            updatedCount++;
           }
+
+          updateProductOverride(id, {
+            title: product.baseTitle,
+            price: product.price,
+            inventory: totalInventory,
+            sizes: sizes,
+            sizeInventory: product.sizeInventory,
+            image: image,
+            description: product.description || existingProduct?.node.description || 
+              `Luxury ${product.productType.toLowerCase()} from the ${product.collection || 'Nina Armend'} collection.`,
+            productType: product.productType,
+            collection: product.collection
+          });
+          updatedCount++;
         });
 
         setTimeout(() => {
           setIsUploading(false);
-          toast.success(`Sync complete! ${updatedCount} products updated.`);
+          toast.success(`Sync complete! ${updatedCount} products created from ${rows.length} inventory rows.`);
         }, 1500);
       } catch (error) {
         console.error('Spreadsheet parsing failed:', error);

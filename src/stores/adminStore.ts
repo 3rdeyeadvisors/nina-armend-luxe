@@ -40,6 +40,7 @@ export interface ProductOverride {
   productType?: string;
   isDeleted?: boolean;
   sizes?: string[];
+  collection?: string;
 }
 
 export interface AdminSettings {

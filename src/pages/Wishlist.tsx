@@ -38,7 +38,8 @@ export default function Wishlist() {
                     images: [item.image],
                     category: 'Top',
                     productType: 'Bikini',
-                    colors: []
+                    colors: [],
+                    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL']
                   })}
                   index={index}
                 />
