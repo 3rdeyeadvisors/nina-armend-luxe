@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ShoppingBag, Minus, Plus, Trash2, ExternalLink, Loader2, Truck, CheckCircle2 } from "lucide-react";
+import { ShoppingBag, Minus, Plus, Trash2, Loader2, Truck, CheckCircle2 } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { useAdminStore } from "@/stores/adminStore";
 import { useAuthStore } from "@/stores/authStore";
+import { toast } from "sonner";
 
 export const CartDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { items, isLoading, isSyncing, updateQuantity, removeItem, getCheckoutUrl, syncCart } = useCartStore();
+  const { items, isLoading, updateQuantity, removeItem, clearCart } = useCartStore();
   const addAdminOrder = useAdminStore(state => state.addOrder);
   const { user } = useAuthStore();
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -22,34 +23,33 @@ export const CartDrawer = () => {
   const totalSets = Math.min(topsCount, bottomsCount) + onePiecesCount;
   const freeShippingEligible = totalSets >= 2;
 
-  useEffect(() => { if (isOpen) syncCart(); }, [isOpen, syncCart]);
-
   const handleCheckout = () => {
-    const checkoutUrl = getCheckoutUrl();
-    if (checkoutUrl) {
-      // Simulate POS/Admin Sync: Add order to admin dashboard
-      addAdminOrder({
-        id: `#ORD-${Math.floor(Math.random() * 9000) + 1000}`,
-        customerName: user?.name || 'Guest Customer',
-        customerEmail: user?.email || 'guest@example.com',
-        date: new Date().toISOString().split('T')[0],
-        total: totalPrice.toFixed(2),
-        status: 'Pending',
-        trackingNumber: 'Pending',
-        shippingCost: '0.00',
-        itemCost: (totalPrice * 0.3).toFixed(2), // Mock 30% COGS
-        items: items.map(item => ({
-          title: item.product.node.title,
-          quantity: item.quantity,
-          price: item.price.amount,
-          image: item.product.node.images.edges[0]?.node.url || '',
-          size: item.variantTitle
-        }))
-      });
+    // Create order in admin dashboard
+    addAdminOrder({
+      id: `#ORD-${Math.floor(Math.random() * 9000) + 1000}`,
+      customerName: user?.name || 'Guest Customer',
+      customerEmail: user?.email || 'guest@example.com',
+      date: new Date().toISOString().split('T')[0],
+      total: totalPrice.toFixed(2),
+      status: 'Pending',
+      trackingNumber: 'Pending',
+      shippingCost: freeShippingEligible ? '0.00' : '12.50',
+      itemCost: (totalPrice * 0.3).toFixed(2),
+      items: items.map(item => ({
+        title: item.product.node.title,
+        quantity: item.quantity,
+        price: item.price.amount,
+        image: item.product.node.images.edges[0]?.node.url || '',
+        size: item.variantTitle
+      }))
+    });
 
-      window.open(checkoutUrl, '_blank');
-      setIsOpen(false);
-    }
+    toast.success("Order placed successfully!", {
+      description: "Thank you for your purchase. You'll receive a confirmation email shortly."
+    });
+    
+    clearCart();
+    setIsOpen(false);
   };
 
   return (
@@ -175,15 +175,12 @@ export const CartDrawer = () => {
                   onClick={handleCheckout} 
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-sans tracking-wider" 
                   size="lg" 
-                  disabled={items.length === 0 || isLoading || isSyncing}
+                  disabled={items.length === 0 || isLoading}
                 >
-                  {isLoading || isSyncing ? (
+                  {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <>
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Proceed to Checkout
-                    </>
+                    'Complete Purchase'
                   )}
                 </Button>
               </div>

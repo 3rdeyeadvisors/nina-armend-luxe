@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShopifyProduct } from '@/lib/shopify';
+import { Product } from '@/hooks/useProducts';
 import { useCartStore } from '@/stores/cartStore';
 import { useWishlistStore } from '@/stores/wishlistStore';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 interface ProductCardProps {
-  product: ShopifyProduct;
+  product: Product;
   index?: number;
 }
 

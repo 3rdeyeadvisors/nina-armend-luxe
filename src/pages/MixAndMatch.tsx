@@ -1,16 +1,51 @@
-
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { MOCK_PRODUCTS } from '@/lib/mockData';
+import { MOCK_PRODUCTS, type MockProduct } from '@/lib/mockData';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ShoppingBag, RotateCcw } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
-import { mapMockToShopify } from '@/lib/shopify';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 import { PRODUCT_SIZES } from '@/lib/constants';
+import { Product } from '@/hooks/useProducts';
+
+// Helper to convert mock product to Product format
+function mapMockToProduct(product: MockProduct): Product {
+  return {
+    node: {
+      id: `product-${product.id}`,
+      title: product.title,
+      description: "Experience the ultimate in Brazilian luxury.",
+      handle: product.handle,
+      productType: product.productType,
+      priceRange: {
+        minVariantPrice: {
+          amount: product.price.toString(),
+          currencyCode: "USD",
+        },
+      },
+      images: {
+        edges: product.images.map((url: string) => ({
+          node: { url, altText: product.title },
+        })),
+      },
+      variants: {
+        edges: product.sizes.map(size => ({
+          node: {
+            id: `${product.id}-${size.toLowerCase()}`,
+            title: size,
+            price: { amount: product.price.toString(), currencyCode: "USD" },
+            availableForSale: true,
+            selectedOptions: [{ name: "Size", value: size }],
+          },
+        })),
+      },
+      options: [{ name: "Size", values: product.sizes }],
+    },
+  };
+}
 
 export default function MixAndMatch() {
   const { user } = useAuthStore();
@@ -36,34 +71,26 @@ export default function MixAndMatch() {
     setBottomIndex(Math.floor(Math.random() * bottoms.length));
   };
 
-  const handleAddSetToCart = async () => {
-    // In a real scenario, we would fetch the Shopify variant IDs.
-    // For this mock, we'll simulate adding two items.
-    toast.promise(
-      Promise.all([
-        addItem({
-          product: mapMockToShopify(currentTop),
-          variantId: `gid://shopify/ProductVariant/${currentTop.id}-${topSize.toLowerCase()}`,
-          variantTitle: topSize,
-          price: { amount: currentTop.price.toString(), currencyCode: 'USD' },
-          quantity: 1,
-          selectedOptions: [{ name: 'Size', value: topSize }]
-        }),
-        addItem({
-          product: mapMockToShopify(currentBottom),
-          variantId: `gid://shopify/ProductVariant/${currentBottom.id}-${bottomSize.toLowerCase()}`,
-          variantTitle: bottomSize,
-          price: { amount: currentBottom.price.toString(), currencyCode: 'USD' },
-          quantity: 1,
-          selectedOptions: [{ name: 'Size', value: bottomSize }]
-        })
-      ]),
-      {
-        loading: 'Adding set to bag...',
-        success: 'Set added successfully!',
-        error: 'Failed to add set.'
-      }
-    );
+  const handleAddSetToCart = () => {
+    addItem({
+      product: mapMockToProduct(currentTop),
+      variantId: `${currentTop.id}-${topSize.toLowerCase()}`,
+      variantTitle: topSize,
+      price: { amount: currentTop.price.toString(), currencyCode: 'USD' },
+      quantity: 1,
+      selectedOptions: [{ name: 'Size', value: topSize }]
+    });
+    
+    addItem({
+      product: mapMockToProduct(currentBottom),
+      variantId: `${currentBottom.id}-${bottomSize.toLowerCase()}`,
+      variantTitle: bottomSize,
+      price: { amount: currentBottom.price.toString(), currencyCode: 'USD' },
+      quantity: 1,
+      selectedOptions: [{ name: 'Size', value: bottomSize }]
+    });
+    
+    toast.success('Set added to your bag!');
   };
 
   return (

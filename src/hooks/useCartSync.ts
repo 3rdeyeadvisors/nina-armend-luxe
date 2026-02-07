@@ -1,17 +1,6 @@
-import { useEffect } from 'react';
-import { useCartStore } from '@/stores/cartStore';
+// Cart sync hook - simplified for local-only cart
+// No external sync needed since we're not using Shopify
 
 export function useCartSync() {
-  const syncCart = useCartStore(state => state.syncCart);
-
-  useEffect(() => {
-    syncCart();
-    
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') syncCart();
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [syncCart]);
+  // No-op - cart is fully local now
 }

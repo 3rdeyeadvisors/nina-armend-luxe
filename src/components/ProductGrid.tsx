@@ -11,7 +11,7 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ query, limit = 12, title, subtitle }: ProductGridProps) {
-  const { data: products, isLoading, error } = useProducts(limit, query);
+  const { data: products, isLoading, isError } = useProducts(limit, query);
 
   if (isLoading) {
     return (
@@ -21,7 +21,7 @@ export function ProductGrid({ query, limit = 12, title, subtitle }: ProductGridP
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="text-center py-20">
         <p className="text-destructive">Failed to load products</p>

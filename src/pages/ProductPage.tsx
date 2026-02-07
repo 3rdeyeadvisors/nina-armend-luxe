@@ -15,7 +15,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 const ProductPage = () => {
   const { handle } = useParams<{ handle: string }>();
-  const { data: product, isLoading, error } = useProduct(handle || '');
+  const { data: product, isLoading, isError } = useProduct(handle || '');
 
   useEffect(() => {
     if (product) {
@@ -69,7 +69,7 @@ const ProductPage = () => {
     );
   }
 
-  if (error || !product) {
+  if (isError || !product) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
