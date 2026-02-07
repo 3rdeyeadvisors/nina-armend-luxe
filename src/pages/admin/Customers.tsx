@@ -1,9 +1,10 @@
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, User, Mail, DollarSign, ShoppingBag, MapPin, Phone, Calendar, Award } from 'lucide-react';
+import { Search, User, Mail, DollarSign, ShoppingBag, MapPin, Phone, Calendar, Award, Shield, Trash2, UserPlus, MoreVertical } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { useAdminStore, type Customer } from '@/stores/adminStore';
+import { useAdminStore, type AdminCustomer as Customer } from '@/stores/adminStore';
+import { useAuthStore, ADMIN_EMAIL } from '@/stores/authStore';
 import { useState, useMemo } from 'react';
 import {
   Dialog,
@@ -13,11 +14,24 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { toast } from "sonner";
 
 export default function AdminCustomers() {
-  const { customers } = useAdminStore();
+  const { customers, deleteCustomer, addCustomer } = useAdminStore();
+  const { user, users, updateUserRole, deleteAccount, addUser } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState('User');
+
+  const isOwner = user?.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  const getCustomerRole = (email: string) => {
+    const authUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    return authUser?.role || 'Customer';
+  };
 
   const filteredCustomers = useMemo(() => {
     if (!searchQuery) return customers;
@@ -37,10 +51,24 @@ export default function AdminCustomers() {
 
           <main className="flex-1 space-y-8 bg-card p-4 sm:p-8 rounded-2xl border border-border/50 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h1 className="font-serif text-3xl">Customer Audience</h1>
-              <div className="bg-primary/10 px-4 py-2 rounded-lg border border-primary/20">
-                <p className="text-[10px] font-sans uppercase tracking-widest text-primary font-bold">Total Audience</p>
-                <p className="font-serif text-2xl">{customers.length}</p>
+              <div className="space-y-1">
+                <h1 className="font-serif text-3xl">Customer Audience</h1>
+                <p className="text-muted-foreground text-xs font-sans">Manage your store's users, roles, and administrative access.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                {isOwner && (
+                  <Button
+                    onClick={() => setIsInviteDialogOpen(true)}
+                    className="bg-primary hover:scale-105 transition-transform font-sans text-[10px] uppercase tracking-widest h-10 px-6"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Staff
+                  </Button>
+                )}
+                <div className="bg-primary/10 px-4 py-2 rounded-lg border border-primary/20 hidden sm:block">
+                  <p className="text-[10px] font-sans uppercase tracking-widest text-primary font-bold">Total Audience</p>
+                  <p className="font-serif text-2xl">{customers.length}</p>
+                </div>
               </div>
             </div>
 
@@ -60,6 +88,7 @@ export default function AdminCustomers() {
                   <TableRow>
                     <TableHead className="font-sans text-[10px] uppercase tracking-widest">Customer</TableHead>
                     <TableHead className="font-sans text-[10px] uppercase tracking-widest">Email</TableHead>
+                    <TableHead className="font-sans text-[10px] uppercase tracking-widest">Role</TableHead>
                     <TableHead className="font-sans text-[10px] uppercase tracking-widest">Orders</TableHead>
                     <TableHead className="font-sans text-[10px] uppercase tracking-widest">Total Spent</TableHead>
                     <TableHead className="font-sans text-[10px] uppercase tracking-widest">Joined</TableHead>
@@ -68,7 +97,7 @@ export default function AdminCustomers() {
                 <TableBody>
                   {filteredCustomers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center font-sans text-muted-foreground">
+                      <TableCell colSpan={6} className="h-24 text-center font-sans text-muted-foreground">
                         No customers found matching your search.
                       </TableCell>
                     </TableRow>
@@ -87,6 +116,11 @@ export default function AdminCustomers() {
                         </div>
                       </TableCell>
                       <TableCell className="font-sans text-sm text-muted-foreground">{customer.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-sans text-[9px] uppercase tracking-widest border-primary/20 text-primary">
+                          {getCustomerRole(customer.email)}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="font-sans text-sm">{customer.orderCount}</TableCell>
                       <TableCell className="font-sans text-sm font-medium">${parseFloat(customer.totalSpent).toFixed(2)}</TableCell>
                       <TableCell className="font-sans text-xs text-muted-foreground">{customer.joinDate}</TableCell>
@@ -167,9 +201,56 @@ export default function AdminCustomers() {
                         </div>
                       </div>
 
+                      {isOwner && (
+                        <div className="space-y-6 pt-2">
+                          <div className="space-y-4">
+                            <h3 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-muted-foreground border-b pb-2">Administrative Controls</h3>
+                            <div className="flex flex-col gap-4">
+                              <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/50">
+                                <div className="flex items-center gap-3">
+                                  <Shield className="h-4 w-4 text-primary" />
+                                  <div>
+                                    <p className="text-[11px] font-sans font-bold uppercase tracking-wider">Account Role</p>
+                                    <p className="text-[10px] text-muted-foreground font-sans">Grant manager or admin privileges</p>
+                                  </div>
+                                </div>
+                                <select
+                                  className="bg-background border rounded-lg px-3 py-1.5 text-xs font-sans outline-none focus:ring-1 focus:ring-primary"
+                                  value={getCustomerRole(selectedCustomer.email)}
+                                  onChange={(e) => {
+                                    updateUserRole(selectedCustomer.email, e.target.value);
+                                    // Refresh the UI by forcing a re-render or notification
+                                  }}
+                                >
+                                  <option value="Customer">Customer</option>
+                                  <option value="Manager">Manager</option>
+                                  <option value="Admin">Admin</option>
+                                  <option value="Founder & Owner">Founder & Owner</option>
+                                </select>
+                              </div>
+
+                              <Button
+                                variant="destructive"
+                                className="w-full font-sans text-[10px] uppercase tracking-widest h-11 bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border-red-200"
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to delete the profile for ${selectedCustomer.name}? This action cannot be undone.`)) {
+                                    deleteAccount(selectedCustomer.email);
+                                    deleteCustomer(selectedCustomer.id);
+                                    setSelectedCustomer(null);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Profile
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="pt-4 flex justify-between gap-4">
                          <Button variant="outline" className="flex-1 font-sans text-[10px] uppercase tracking-widest h-11">
-                           View Full Profile
+                           View History
                          </Button>
                          <Button className="flex-1 bg-primary font-sans text-[10px] uppercase tracking-widest h-11">
                            Send Email
@@ -178,6 +259,95 @@ export default function AdminCustomers() {
                     </div>
                   </div>
                 )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Invite Staff Dialog */}
+            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+              <DialogContent className="sm:max-w-[450px] p-8 border-primary/20">
+                <DialogHeader className="space-y-3 mb-6">
+                  <DialogTitle className="font-serif text-2xl text-center">Add Store Staff</DialogTitle>
+                  <p className="text-center text-muted-foreground text-sm font-sans">
+                    Create a new administrative account for your team members.
+                  </p>
+                </DialogHeader>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-sans uppercase tracking-widest font-bold text-muted-foreground ml-1">Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Maria Oliveira"
+                      className="w-full bg-secondary/30 border rounded-xl px-4 py-3 text-sm font-sans outline-none focus:ring-1 focus:ring-primary"
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-sans uppercase tracking-widest font-bold text-muted-foreground ml-1">Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="maria@ninaarmend.co.site"
+                      className="w-full bg-secondary/30 border rounded-xl px-4 py-3 text-sm font-sans outline-none focus:ring-1 focus:ring-primary"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-sans uppercase tracking-widest font-bold text-muted-foreground ml-1">Role Type</label>
+                    <select
+                      className="w-full bg-secondary/30 border rounded-xl px-4 py-3 text-sm font-sans outline-none focus:ring-1 focus:ring-primary appearance-none"
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value)}
+                    >
+                      <option value="Manager">Store Manager</option>
+                      <option value="Admin">Administrator</option>
+                      <option value="User">Standard Staff</option>
+                    </select>
+                  </div>
+
+                  <div className="pt-4 flex flex-col gap-3">
+                    <Button
+                      className="w-full bg-primary font-sans text-[10px] uppercase tracking-widest h-12"
+                      onClick={() => {
+                        if (!inviteEmail || !inviteName) return;
+
+                        // Add to auth store
+                        addUser({
+                          name: inviteName,
+                          email: inviteEmail,
+                          role: inviteRole,
+                          points: 0,
+                          referralCode: `NINA-STAFF-${Math.floor(Math.random() * 1000)}`
+                        });
+
+                        // Also add to admin customers list so they show up in the table
+                        addCustomer({
+                          id: `staff-${Date.now()}`,
+                          name: inviteName,
+                          email: inviteEmail,
+                          totalSpent: '0.00',
+                          orderCount: 0,
+                          joinDate: new Date().toISOString().split('T')[0]
+                        });
+
+                        setIsInviteDialogOpen(false);
+                        setInviteEmail('');
+                        setInviteName('');
+                        toast.success(`Staff account created for ${inviteName}`);
+                      }}
+                    >
+                      Create Account
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full font-sans text-[10px] uppercase tracking-widest h-10 text-muted-foreground"
+                      onClick={() => setIsInviteDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
 

@@ -77,4 +77,33 @@ describe("authStore", () => {
     expect(success).toBe(true);
     expect(useAuthStore.getState().user?.email).toBe("trim-test@example.com");
   });
+
+  it("should allow updating a user role", async () => {
+    const { signup, updateUserRole } = useAuthStore.getState();
+    const testEmail = "role-test@example.com";
+    await signup("Role Test", testEmail, "password123");
+
+    updateUserRole(testEmail, "Admin");
+
+    const updatedUser = useAuthStore.getState().users.find(u => u.email === testEmail);
+    expect(updatedUser?.role).toBe("Admin");
+  });
+
+  it("should allow adding a user directly", () => {
+    const { addUser } = useAuthStore.getState();
+    const newUser = {
+      name: "Staff Member",
+      email: "staff@ninaarmend.co.site",
+      role: "Manager",
+      points: 0,
+      referralCode: "NINA-STAFF-123"
+    };
+
+    addUser(newUser);
+
+    const addedUser = useAuthStore.getState().users.find(u => u.email === "staff@ninaarmend.co.site");
+    expect(addedUser).toBeDefined();
+    expect(addedUser?.name).toBe("Staff Member");
+    expect(addedUser?.role).toBe("Manager");
+  });
 });
