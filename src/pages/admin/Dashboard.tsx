@@ -14,6 +14,8 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useAdminStore } from '@/stores/adminStore';
 import { parseSpreadsheet } from '@/lib/spreadsheet';
+import { useProducts } from '@/hooks/useProducts';
+import { PRODUCT_SIZES } from '@/lib/constants';
 
 const data = [
   { name: 'Mon', sales: 4000, traffic: 2400 },
@@ -26,6 +28,7 @@ const data = [
 ];
 
 export default function AdminDashboard() {
+  const { data: allProducts } = useProducts(200);
   const { orders, customers, updateProductOverride } = useAdminStore();
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([
     { role: 'ai', text: "Hello! How can I help you optimize your store today?" }
@@ -116,10 +119,31 @@ export default function AdminDashboard() {
           let updatedCount = 0;
 
           rows.forEach((row, index) => {
-            if (row.id || row.handle || row.title) {
-              const id = String(row.id || `sync-${index}`);
-              const sizes = row.sizes ? String(row.sizes).split('|').map((s: string) => s.trim().toUpperCase()) : undefined;
+            const rawId = row.id ? String(row.id) : '';
+            const handle = row.handle ? String(row.handle) : '';
+            const title = row.title ? String(row.title) : '';
 
+            if (rawId || handle || title) {
+              // 1. Find existing product for matching
+              let existingProduct = allProducts?.find(p =>
+                p.node.id === rawId ||
+                p.node.id === `gid://shopify/Product/${rawId}` ||
+                (handle && p.node.handle === handle) ||
+                (title && p.node.title.toLowerCase() === title.toLowerCase())
+              );
+
+              const id = existingProduct
+                ? existingProduct.node.id
+                : (rawId
+                    ? (rawId.startsWith('gid://') ? rawId : `gid://shopify/Product/${rawId}`)
+                    : `sync-${index}`);
+
+              // 2. Determine sizes
+              const sizes = row.sizes
+                ? String(row.sizes).split('|').map((s: string) => s.trim().toUpperCase())
+                : (existingProduct?.node.options.find(o => o.name === 'Size')?.values);
+
+              // 3. Handle size inventory
               let sizeInventory: Record<string, number> | undefined = undefined;
               if (row.size_inventory) {
                 sizeInventory = {};
@@ -127,12 +151,21 @@ export default function AdminDashboard() {
                   const [s, q] = part.split(':');
                   if (s && q) sizeInventory![s.trim().toUpperCase()] = parseInt(q.trim()) || 0;
                 });
+              } else if (row.inventory !== undefined) {
+                // Auto-distribute total inventory if size_inventory is missing
+                const total = parseInt(row.inventory) || 0;
+                const targetSizes = sizes || [...PRODUCT_SIZES];
+                sizeInventory = {};
+                const perSize = Math.floor(total / (targetSizes.length || 1));
+                targetSizes.forEach((s, idx) => {
+                  sizeInventory![s] = idx === targetSizes.length - 1 ? total - (perSize * (targetSizes.length - 1)) : perSize;
+                });
               }
 
               updateProductOverride(id, {
                 title: row.title ? String(row.title) : undefined,
                 price: row.price ? String(row.price) : undefined,
-                inventory: row.inventory ? parseInt(row.inventory) : 0,
+                inventory: row.inventory !== undefined ? parseInt(row.inventory) : undefined,
                 sizes: sizes,
                 sizeInventory: sizeInventory,
               });

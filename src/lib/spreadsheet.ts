@@ -13,7 +13,13 @@ export function parseSpreadsheet(data: ArrayBuffer): any[] {
   return json.map((row: any) => {
     const normalizedRow: any = {};
     Object.keys(row).forEach((key) => {
-      const normalizedKey = key.toLowerCase().trim();
+      let normalizedKey = key.toLowerCase().trim();
+
+      // Map common variations to standard keys
+      if (['stock', 'qty', 'quantity'].includes(normalizedKey)) {
+        normalizedKey = 'inventory';
+      }
+
       normalizedRow[normalizedKey] = row[key];
     });
     return normalizedRow;
