@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useAdminStore } from '@/stores/adminStore';
 import { useProducts } from '@/hooks/useProducts';
 import { useSpreadsheetSync } from '@/hooks/useSpreadsheetSync';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const data = [
   { name: 'Mon', sales: 4000, traffic: 2400 },
@@ -28,8 +29,38 @@ const data = [
 
 export default function AdminDashboard() {
   const { data: allProducts } = useProducts(200);
-  const { orders, customers } = useAdminStore();
+  const { orders, customers, _hasHydrated } = useAdminStore();
   const { isUploading, handleFileUpload, downloadTemplate, fileInputRef } = useSpreadsheetSync();
+  
+  // Show loading skeleton while data is being restored from storage
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen bg-secondary/20">
+        <Header />
+        <div className="pt-40 md:pt-48 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+          <div className="flex flex-col gap-8 lg:gap-12">
+            <AdminSidebar />
+            <main className="flex-1 space-y-8">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-6 w-64" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-32 rounded-lg" />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Skeleton className="h-48 rounded-lg" />
+                <Skeleton className="h-48 rounded-lg" />
+              </div>
+            </main>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([
     { role: 'ai', text: "Hello! How can I help you optimize your store today?" }
   ]);

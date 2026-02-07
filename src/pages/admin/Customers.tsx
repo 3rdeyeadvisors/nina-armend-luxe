@@ -15,9 +15,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminCustomers() {
-  const { customers, deleteCustomer, addCustomer } = useAdminStore();
+  const { customers, deleteCustomer, addCustomer, _hasHydrated } = useAdminStore();
   const { user, users, updateUserRole, deleteAccount, addUser } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -41,6 +42,32 @@ export default function AdminCustomers() {
       c.email.toLowerCase().includes(q)
     );
   }, [customers, searchQuery]);
+
+  // Show loading skeleton while data is being restored from storage
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen bg-secondary/20">
+        <Header />
+        <div className="pt-40 md:pt-48 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+          <div className="flex flex-col gap-8 lg:gap-12">
+            <AdminSidebar />
+            <main className="flex-1 space-y-8 bg-card p-4 sm:p-8 rounded-2xl border border-border/50 shadow-sm">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+              </div>
+            </main>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-secondary/20">

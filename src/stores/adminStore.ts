@@ -58,6 +58,8 @@ interface AdminStore {
   customers: AdminCustomer[];
   productOverrides: Record<string, ProductOverride>;
   settings: AdminSettings;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   addOrder: (order: AdminOrder) => void;
   updateOrder: (orderId: string, updates: Partial<AdminOrder>) => void;
   updateProductOverride: (id: string, override: Partial<ProductOverride>) => void;
@@ -124,6 +126,8 @@ export const useAdminStore = create<AdminStore>()(
       customers: INITIAL_CUSTOMERS,
       productOverrides: {},
       settings: INITIAL_SETTINGS,
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       addOrder: (order) => set((state) => ({
         orders: [order, ...state.orders]
@@ -200,6 +204,9 @@ export const useAdminStore = create<AdminStore>()(
     {
       name: 'nina-armend-admin-v2',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

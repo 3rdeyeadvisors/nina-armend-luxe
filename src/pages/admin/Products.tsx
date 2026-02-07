@@ -31,10 +31,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminStore, type ProductOverride } from '@/stores/adminStore';
 import { PRODUCT_SIZES } from '@/lib/constants';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminProducts() {
   const { data: initialProducts, isLoading } = useProducts(100);
-  const { productOverrides, updateProductOverride, deleteProduct } = useAdminStore();
+  const { productOverrides, updateProductOverride, deleteProduct, _hasHydrated } = useAdminStore();
   const { isUploading, handleFileUpload, downloadTemplate, fileInputRef: syncInputRef } = useSpreadsheetSync();
   const [editingProduct, setEditingProduct] = useState<Partial<ProductOverride> | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -54,6 +55,36 @@ export default function AdminProducts() {
       (p.node.description || '').toLowerCase().includes(q)
     );
   }, [initialProducts, searchQuery]);
+
+  // Show loading skeleton while data is being restored from storage
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen bg-secondary/20">
+        <Header />
+        <div className="pt-40 md:pt-48 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+          <div className="flex flex-col gap-8 lg:gap-12">
+            <AdminSidebar />
+            <main className="flex-1 space-y-8 bg-card p-4 sm:p-8 rounded-2xl border border-border/50 shadow-sm">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-10 w-32" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 w-32" />
+                  <Skeleton className="h-10 w-40" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                ))}
+              </div>
+            </main>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   const confirmDelete = () => {
     if (productToDelete) {
