@@ -24,9 +24,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminOrders() {
-  const { orders, updateOrder } = useAdminStore();
+  const { orders, updateOrder, _hasHydrated } = useAdminStore();
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
@@ -35,6 +36,29 @@ export default function AdminOrders() {
   const [editTracking, setEditTracking] = useState('');
   const [editShippingCost, setEditShippingCost] = useState('');
   const [editItemCost, setEditItemCost] = useState('');
+
+  // Show loading skeleton while data is being restored from storage
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen bg-secondary/20">
+        <Header />
+        <div className="pt-40 md:pt-48 pb-12 max-w-[1600px] mx-auto px-4 md:px-8">
+          <div className="flex flex-col gap-8 lg:gap-12">
+            <AdminSidebar />
+            <main className="flex-1 space-y-8 bg-card p-4 sm:p-8 rounded-2xl border border-border/50 shadow-sm">
+              <Skeleton className="h-10 w-48" />
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+              </div>
+            </main>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   const handleEdit = (order: AdminOrder) => {
     setSelectedOrder(order);
