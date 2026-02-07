@@ -73,7 +73,11 @@ export default function AdminProducts() {
       if (override?.isDeleted) return;
       
       counts.All++;
-      const category = override?.category || 'Other';
+      // Derive category from override or productType
+      const category = override?.category || 
+        (p.node.productType?.toLowerCase().includes('top') ? 'Top' :
+         p.node.productType?.toLowerCase().includes('bottom') ? 'Bottom' :
+         p.node.productType?.toLowerCase().includes('one-piece') ? 'One-Piece' : 'Other');
       if (counts[category] !== undefined) {
         counts[category]++;
       } else {
@@ -93,7 +97,12 @@ export default function AdminProducts() {
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(p => {
         const override = productOverrides[p.node.id];
-        return override?.category === selectedCategory;
+        // If no override exists, categorize based on productType or default to 'Other'
+        const category = override?.category || 
+          (p.node.productType?.toLowerCase().includes('top') ? 'Top' :
+           p.node.productType?.toLowerCase().includes('bottom') ? 'Bottom' :
+           p.node.productType?.toLowerCase().includes('one-piece') ? 'One-Piece' : 'Other');
+        return category === selectedCategory;
       });
     }
 
@@ -173,13 +182,47 @@ export default function AdminProducts() {
   };
 
   const moveProductToCategory = (productId: string, category: string) => {
-    updateProductOverride(productId, { category });
+    // Ensure the product exists in overrides before updating category
+    const product = products.find(p => p.node.id === productId);
+    if (product) {
+      const existingOverride = productOverrides[productId];
+      if (!existingOverride) {
+        // Create a full override from the current product data
+        updateProductOverride(productId, {
+          title: product.node.title,
+          price: product.node.priceRange.minVariantPrice.amount,
+          image: product.node.images.edges[0]?.node.url || '',
+          description: product.node.description || '',
+          productType: product.node.productType,
+          inventory: 0,
+          category,
+        });
+      } else {
+        updateProductOverride(productId, { category });
+      }
+    }
     toast.success(`Product moved to ${category}`);
   };
 
   const bulkMoveToCategory = (category: string) => {
     selectedProducts.forEach(id => {
-      updateProductOverride(id, { category });
+      const product = products.find(p => p.node.id === id);
+      if (product) {
+        const existingOverride = productOverrides[id];
+        if (!existingOverride) {
+          updateProductOverride(id, {
+            title: product.node.title,
+            price: product.node.priceRange.minVariantPrice.amount,
+            image: product.node.images.edges[0]?.node.url || '',
+            description: product.node.description || '',
+            productType: product.node.productType,
+            inventory: 0,
+            category,
+          });
+        } else {
+          updateProductOverride(id, { category });
+        }
+      }
     });
     toast.success(`${selectedProducts.size} products moved to ${category}`);
     setSelectedProducts(new Set());
