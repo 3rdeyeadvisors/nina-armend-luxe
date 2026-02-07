@@ -122,7 +122,6 @@ export const useAuthStore = create<AuthStore>()(
            * MOCK IMPLEMENTATION: In a real app, this would send an email.
            * For this demo, we'll just return true to simulate success.
            */
-          console.log(`Password reset requested for: ${email}`);
           return true;
         }
         return false;

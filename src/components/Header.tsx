@@ -66,64 +66,60 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
       <AnnouncementBar />
-      <nav className="container mx-auto px-4 md:px-8">
-        <div className="flex items-center justify-between h-16 md:h-24 gap-4">
-          {/* Left section - Balanced spacing */}
-          <div className="flex-1 flex items-center justify-between">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="lg:hidden shrink-0"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+      <nav className="mx-auto px-4 md:px-8 relative h-16 md:h-24 max-w-[1920px]">
+        {/* Mobile menu button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden absolute left-4 top-1/2 -translate-y-1/2 z-50"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
 
-            {/* Desktop navigation - left (aligned to logo) */}
-            <div className="hidden lg:flex flex-1 justify-end items-center gap-6 xl:gap-10 pr-8 xl:pr-12">
-              {navLinks.slice(0, 3).map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  className="text-[10px] font-sans tracking-[0.3em] text-foreground/70 hover:text-primary transition-colors uppercase whitespace-nowrap"
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </div>
+        {/* Desktop Navigation - Flex Container */}
+        <div className="hidden lg:flex items-center justify-between h-full w-full">
+
+          {/* Left Navigation Group */}
+          <div className="flex items-center gap-3 xl:gap-6 2xl:gap-10 flex-1 justify-start overflow-hidden">
+            {navLinks.slice(0, 3).map((link) => (
+              <Link
+                key={link.name}
+                to={link.href}
+                className="text-[8px] xl:text-[9px] 2xl:text-[10px] font-sans tracking-[0.1em] xl:tracking-[0.2em] 2xl:tracking-[0.3em] text-foreground/70 hover:text-primary transition-colors uppercase whitespace-nowrap"
+              >
+                {link.name}
+              </Link>
+            ))}
           </div>
 
-          {/* Logo - Absolute Center for perfection */}
-          <div className="flex-none flex justify-center z-10 px-4 scale-90 md:scale-100">
-            <Link to="/" className="flex flex-col items-center">
-              <Logo />
-            </Link>
-          </div>
+          {/* Logo Center Placeholder - Keeps the gap for the absolute logo */}
+          <div className="w-[140px] xl:w-[240px] 2xl:w-[380px] shrink-0" />
 
-          {/* Right section - Balanced spacing */}
-          <div className="flex-1 flex items-center justify-between">
-            {/* Desktop navigation - right (aligned to logo) */}
-            <div className="hidden lg:flex flex-1 justify-start items-center gap-6 xl:gap-10 pl-8 xl:pl-12">
+          {/* Right Navigation + Icons Group */}
+          <div className="flex items-center justify-end gap-2 xl:gap-4 2xl:gap-8 flex-1 overflow-hidden">
+            {/* Right Nav Links */}
+            <div className="flex items-center gap-3 xl:gap-6 2xl:gap-8 mr-1 xl:mr-4">
               {navLinks.slice(3).map((link) => (
                 <Link
                   key={link.name}
                   to={link.href}
-                  className="text-[10px] font-sans tracking-[0.3em] text-foreground/70 hover:text-primary transition-colors uppercase whitespace-nowrap"
+                  className="text-[9px] 2xl:text-[10px] font-sans tracking-[0.15em] xl:tracking-[0.2em] 2xl:tracking-[0.3em] text-foreground/70 hover:text-primary transition-colors uppercase whitespace-nowrap"
                 >
                   {link.name}
                 </Link>
               ))}
             </div>
 
-            {/* Icons - End of right section */}
-            <div className="flex items-center gap-1 md:gap-2 ml-auto">
+            {/* Icons + Admin Dashboard Button */}
+            <div className="flex items-center gap-0.5 xl:gap-1 2xl:gap-2 shrink-0">
               {isAdmin && (
-                <Link to="/admin" className="hidden lg:block mr-2">
-                  <Button variant="outline" size="sm" className="flex gap-2 border-primary/20 text-primary hover:bg-primary/5 font-sans text-[10px] uppercase tracking-widest">
-                    <LayoutDashboard className="h-3 w-3" />
-                    <span className="hidden xl:inline">Admin Dashboard</span>
-                    <span className="xl:hidden">Admin</span>
+                <Link to="/admin">
+                  <Button variant="outline" size="sm" className="flex gap-2 border-primary/20 text-primary hover:bg-primary/5 font-sans text-[9px] 2xl:text-[10px] uppercase tracking-widest shadow-sm px-2 2xl:px-4 h-9">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span className="hidden 2xl:inline">Admin Dashboard</span>
+                    <span className="hidden min-[1440px]:inline 2xl:hidden">Admin</span>
                   </Button>
                 </Link>
               )}
@@ -131,32 +127,60 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className="h-9 w-9 xl:h-10 xl:w-10 transition-colors"
                 onClick={() => setSearchOpen(!searchOpen)}
                 aria-label="Toggle search"
               >
-                {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4 md:h-5 md:w-5" />}
+                {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
               </Button>
 
               <Link to="/wishlist">
-                <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex relative">
-                  <Heart className="h-4 w-4 md:h-5 md:w-5" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 xl:h-10 xl:w-10 hidden sm:flex relative transition-colors">
+                  <Heart className="h-5 w-5 text-foreground" />
                   {wishlistItems.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm">
+                    <span className="absolute top-1 right-1 bg-primary text-primary-foreground text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-sm ring-1 ring-background">
                       {wishlistItems.length}
                     </span>
                   )}
                 </Button>
               </Link>
+
               <Link to="/account">
-                <Button variant="ghost" size="icon" className="h-9 w-9 hidden sm:flex">
-                  <User className="h-4 w-4 md:h-5 md:w-5" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 xl:h-10 xl:w-10 hidden sm:flex transition-colors">
+                  <User className="h-5 w-5" />
                 </Button>
               </Link>
 
-              <CartDrawer />
+              <div className="pl-1">
+                <CartDrawer />
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Logo - Guaranteed Perfect Center via Absolute Positioning */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden lg:block">
+          <Link to="/" className="flex flex-col items-center pointer-events-auto scale-[0.65] xl:scale-[0.85] 2xl:scale-100 transition-all duration-300">
+            <Logo />
+          </Link>
+        </div>
+
+        {/* Mobile Logo & Cart (for < lg) */}
+        <div className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Link to="/" className="flex flex-col items-center scale-75">
+            <Logo />
+          </Link>
+        </div>
+
+        <div className="lg:hidden absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSearchOpen(!searchOpen)}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+          <CartDrawer />
         </div>
 
         {/* Search Bar - Slide Down */}
