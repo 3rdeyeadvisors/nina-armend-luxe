@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, AreaChart, Area
 } from 'recharts';
-import { TrendingUp, ShoppingBag, Users, DollarSign, Package, Brain, Sparkles, MessageSquare, Upload, Loader2, BarChart3 } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Users, DollarSign, Package, Brain, Sparkles, MessageSquare, Upload, Loader2, BarChart3, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -136,7 +136,7 @@ export default function AdminDashboard() {
           const values = parseCSVRow(lines[i]);
           if (values.length < headers.length) continue;
 
-          const row: any = {};
+          const row: Record<string, string> = {};
           headers.forEach((header, index) => {
             row[header.trim()] = values[index];
           });

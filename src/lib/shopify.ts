@@ -279,7 +279,6 @@ export async function fetchProducts(first: number = 20, query?: string): Promise
 
     // If no products returned from Shopify, fallback to mock data
     if (products.length === 0) {
-      console.log('No products from Shopify, using mock data');
       let filteredMock = MOCK_PRODUCTS;
       if (query) {
         const q = query.toLowerCase();
@@ -316,7 +315,6 @@ export async function fetchProductByHandle(handle: string): Promise<ShopifyProdu
     const product = data?.data?.productByHandle;
 
     if (!product) {
-      console.log(`Product with handle ${handle} not found in Shopify, checking mock data`);
       const mockProduct = MOCK_PRODUCTS.find(p => p.handle === handle);
       if (mockProduct) {
         return mapMockToShopify(mockProduct).node;
