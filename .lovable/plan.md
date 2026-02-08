@@ -1,131 +1,129 @@
 
-# Simplified Spreadsheet Upload Format
+# Fix Product Admin Issues: Edit Dialog, Save Button, and Inventory Counts
 
-## Overview
-You want a cleaner, more straightforward spreadsheet format with these exact columns:
+## Issues Identified
 
-| Column | Maps To | Purpose |
-|--------|---------|---------|
-| Item ID | Product ID | Unique identifier |
-| Item Name | Product Title | Product name (with size in parentheses) |
-| Type | Category | Top, Bottom, One-Piece, Other |
-| Price Per Unit | Price | Product price |
-| Stock | Inventory | Quantity available |
-| Collection | Collection | Which collection it belongs to |
-| Status | Status | Active, Inactive, Draft |
+### 1. Build Error in Wishlist.tsx
+**Problem**: The `Wishlist.tsx` file is using an outdated `Product` type structure with `{ node: { ... } }` nesting, but the new flattened `Product` type no longer has this structure.
 
-## Changes
+**Line 12**: `'node' does not exist in type 'Product'`
 
-### 1. Update Spreadsheet Parser
+### 2. Edit Dialog Too Long / Scrolling Issues
+**Problem**: The edit product dialog (`DialogContent`) has a fixed height (`sm:max-w-[500px]`) but doesn't have proper scrolling. When many sizes are selected (6 sizes = 6 inventory inputs), the dialog overflows and the Save button gets cut off.
 
-**File:** `src/lib/spreadsheet.ts`
+**Location**: Lines 544-721 in `src/pages/admin/Products.tsx`
 
-Update the column mappings to match your exact column names:
+### 3. Save Button Not Working
+**Problem**: The `handleSave` function on line 253-258 checks if `editingProduct.id` exists, but for new products the ID is set as `new-${Date.now()}`. The issue is that the function calls `updateProductOverride(editingProduct.id, editingProduct)` but when `editingProduct` is a partial object without all required fields, it may fail silently.
 
-```text
-Column Name Variations → Internal Key
-─────────────────────────────────────
-"item id"              → id
-"item name"            → title
-"type"                 → producttype (used as category)
-"price per unit"       → price
-"stock"                → inventory
-"collection"           → collection
-"status"               → status (NEW)
-```
+Additionally, there's no explicit validation to ensure all required fields are filled before saving.
 
-### 2. Update Sync Logic
+### 4. Inventory Counts Not Updating
+**Problem**: The inventory counts displayed in the product table come from `productOverrides[product.id]?.sizeInventory`. However:
+- When products are first loaded from mock data, they don't have any overrides
+- The table shows `0` for all sizes because `sizeInventory` is empty
+- When editing, the `sizeInventory` is initialized but may not be properly saved
 
-**File:** `src/hooks/useSpreadsheetSync.ts`
+**Root cause**: Line 428-429 calculates `totalStock` from either `override?.inventory` OR sums `sizeInventory`, but if neither exists, it shows 0.
 
-- Use the `Type` column directly as the category (no auto-detection needed)
-- Add `status` field to product overrides
-- Simplify the grouping to work with your exact format
+---
 
-### 3. Update Product Interface
+## Solution
 
-**File:** `src/stores/adminStore.ts`
+### File 1: `src/pages/Wishlist.tsx`
+Update the `wishlistItemToProduct` helper to return the new flattened `Product` type instead of the old nested structure.
 
-Add `status` field to ProductOverride:
 ```typescript
-status?: 'Active' | 'Inactive' | 'Draft';
+// Before (broken):
+function wishlistItemToProduct(item): Product {
+  return {
+    node: { ... }  // This no longer exists
+  };
+}
+
+// After (fixed):
+function wishlistItemToProduct(item): Product {
+  return {
+    id: item.id,
+    title: item.title,
+    description: '',
+    handle: item.handle,
+    productType: 'Bikini',
+    price: { amount: item.price, currencyCode: 'USD' },
+    images: [{ url: item.image, altText: item.title }],
+    variants: [...],
+    options: [...]
+  };
+}
 ```
 
-### 4. Update CSV Template
+### File 2: `src/pages/admin/Products.tsx`
+Fix the edit dialog and save functionality:
 
-The downloadable template will match your exact format:
+**A. Add scrolling to dialog content**
+```typescript
+<DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
+```
 
-```csv
-Item ID,Item Name,Type,Price Per Unit,Stock,Collection,Status
-LB-001,White Top (XS),Top,85.00,10,La Bella,Active
-LB-002,White Top (S),Top,85.00,15,La Bella,Active
-LB-003,White Bottom (XS),Bottom,75.00,8,La Bella,Active
-EM-001,Black One-Piece (M),One-Piece,120.00,5,El Mar,Active
-EM-002,Black One-Piece Plus,One-Piece,130.00,3,El Mar,Active
+**B. Fix the save button to ensure proper validation**
+```typescript
+const handleSave = () => {
+  if (!editingProduct?.id || !editingProduct?.title?.trim()) {
+    toast.error("Product name is required");
+    return;
+  }
+  if (!editingProduct?.price || parseFloat(editingProduct.price) <= 0) {
+    toast.error("Valid price is required");
+    return;
+  }
+  updateProductOverride(editingProduct.id, editingProduct);
+  toast.success(isAddingProduct ? "Product added!" : "Product updated!");
+  setEditingProduct(null);
+  setIsAddingProduct(false);
+};
+```
+
+**C. Fix inventory display to show default values**
+Update lines 426-428 to properly initialize and display inventory:
+```typescript
+const sizeInventory = override?.sizeInventory || {};
+const totalStock = override?.inventory ?? 
+  (Object.keys(sizeInventory).length > 0 
+    ? Object.values(sizeInventory).reduce((a, b) => a + b, 0) 
+    : 45); // Default stock if no override
+```
+
+**D. Move DialogFooter outside scroll area**
+Restructure the dialog to have a fixed footer that's always visible:
+```typescript
+<DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col">
+  <DialogHeader>...</DialogHeader>
+  <div className="flex-1 overflow-y-auto py-4">
+    {/* All form fields */}
+  </div>
+  <DialogFooter className="border-t pt-4">
+    <Button>Cancel</Button>
+    <Button>Save Changes</Button>
+  </DialogFooter>
+</DialogContent>
 ```
 
 ---
 
-## Technical Details
+## Summary of Changes
 
-### Spreadsheet Parser (`src/lib/spreadsheet.ts`)
-
-```typescript
-// Column mappings for your exact format
-if (['item id', 'itemid', 'sku', 'product_id', 'productid', 'id'].includes(normalizedKey)) {
-  normalizedKey = 'id';
-}
-if (['item name', 'itemname', 'product_name', 'productname', 'name', 'title'].includes(normalizedKey)) {
-  normalizedKey = 'title';
-}
-if (['type', 'product type', 'producttype', 'category'].includes(normalizedKey)) {
-  normalizedKey = 'producttype';
-}
-if (['price per unit', 'unit price', 'price', 'cost'].includes(normalizedKey)) {
-  normalizedKey = 'price';
-}
-if (['stock', 'qty', 'quantity', 'inventory'].includes(normalizedKey)) {
-  normalizedKey = 'inventory';
-}
-if (['collection', 'collections'].includes(normalizedKey)) {
-  normalizedKey = 'collection';
-}
-if (['status', 'product status'].includes(normalizedKey)) {
-  normalizedKey = 'status';
-}
-```
-
-### Sync Hook Updates (`src/hooks/useSpreadsheetSync.ts`)
-
-- Use `Type` column directly as category instead of auto-detecting from name
-- Add status field to product updates
-- Keep the size extraction from `Item Name` (e.g., "White Top (XS)" → size: XS)
-
-### Store Update (`src/stores/adminStore.ts`)
-
-```typescript
-export interface ProductOverride {
-  // ... existing fields
-  status?: 'Active' | 'Inactive' | 'Draft';
-}
-```
+| File | Change |
+|------|--------|
+| `src/pages/Wishlist.tsx` | Fix `Product` type to use flattened structure (removes build error) |
+| `src/pages/admin/Products.tsx` | Add scrolling to edit dialog with fixed footer |
+| `src/pages/admin/Products.tsx` | Add validation to `handleSave` with user feedback |
+| `src/pages/admin/Products.tsx` | Fix inventory count display for products without overrides |
 
 ---
 
-## Files to Modify
+## Expected Behavior After Fix
 
-1. `src/lib/spreadsheet.ts` - Update column mappings
-2. `src/hooks/useSpreadsheetSync.ts` - Use Type as category, add status
-3. `src/stores/adminStore.ts` - Add status field to interface
-
----
-
-## Expected Result
-
-After upload, your 53 items will sync with:
-- Proper categorization from the `Type` column
-- Correct pricing from `Price Per Unit`
-- Stock levels from `Stock`
-- Collection assignment from `Collection`
-- Active/Inactive status from `Status`
-- Sizes extracted from item names automatically
+1. **Build passes** - No more TypeScript errors
+2. **Edit dialog scrolls properly** - All fields visible, Save button always accessible
+3. **Save button works** - Validates input and shows feedback
+4. **Inventory counts display correctly** - Shows actual inventory from spreadsheet or sensible defaults
