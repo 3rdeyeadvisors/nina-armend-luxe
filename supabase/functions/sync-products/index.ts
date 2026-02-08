@@ -83,11 +83,16 @@ serve(async (req) => {
       is_deleted: p.is_deleted !== undefined ? p.is_deleted : (p.isDeleted !== undefined ? p.isDeleted : false),
     }));
 
-    console.log(`[sync-products] Upserting ${rows.length} products`);
+    // Deduplicate rows by ID to prevent Postgres upsert collisions
+    const uniqueRows = rows.filter((row: any, index: number, self: any[]) =>
+      index === self.findIndex((r) => r.id === row.id)
+    );
+
+    console.log(`[sync-products] Upserting ${uniqueRows.length} products (deduplicated from ${rows.length})`);
 
     const { data, error } = await supabase
       .from('products')
-      .upsert(rows, { onConflict: 'id' })
+      .upsert(uniqueRows, { onConflict: 'id' })
       .select();
 
     if (error) {

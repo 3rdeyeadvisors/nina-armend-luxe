@@ -158,7 +158,9 @@ export function useSpreadsheetSync() {
              (allProducts.length < 50)) // Only match by title if catalog is small to avoid false positives
           );
 
-          const id = existingProduct ? existingProduct.id : product.id.startsWith('sync-') ? product.id : `sync-${normalizedSlug}`;
+          // Use existing product ID if found, otherwise use spreadsheet ID
+          // We no longer force sync- prefix if a specific ID was provided in the spreadsheet
+          const id = existingProduct ? existingProduct.id : product.id;
 
           const inventorySizes = Object.keys(product.sizeInventory);
           const hasRealSizes = inventorySizes.some(s => s !== 'ONE_SIZE');
@@ -181,6 +183,18 @@ export function useSpreadsheetSync() {
             }
           }
 
+          // Normalize status to match database constraints
+          let status = product.status || 'Active';
+          if (!['Active', 'Inactive', 'Draft'].includes(status)) {
+            if (status.toLowerCase().includes('active') || status.toLowerCase().includes('stock')) {
+              status = 'Active';
+            } else if (status.toLowerCase().includes('draft')) {
+              status = 'Draft';
+            } else {
+              status = 'Inactive';
+            }
+          }
+
           const productOverride: ProductOverride = {
             id,
             title: product.baseTitle,
@@ -194,7 +208,7 @@ export function useSpreadsheetSync() {
             productType: product.productType,
             collection: product.collection,
             category: product.productType,
-            status: product.status as 'Active' | 'Inactive' | 'Draft',
+            status: status as 'Active' | 'Inactive' | 'Draft',
             itemNumber: product.itemNumber,
             colorCodes: product.colorCodes
           };
@@ -203,7 +217,16 @@ export function useSpreadsheetSync() {
           productsToSync.push(productOverride);
         });
 
-        const success = await bulkUpsertProducts(productsToSync);
+        // Deduplicate products to sync by ID to prevent database upsert collisions
+        const uniqueProductsToSync = productsToSync.filter((product, index, self) =>
+          index === self.findIndex((p) => p.id === product.id)
+        );
+
+        if (uniqueProductsToSync.length < productsToSync.length) {
+          console.warn(`Deduplicated ${productsToSync.length - uniqueProductsToSync.length} products with duplicate IDs`);
+        }
+
+        const success = await bulkUpsertProducts(uniqueProductsToSync);
         if (success) {
           toast.success(`Sync complete! ${productsToSync.length} products saved to database.`);
         } else {
