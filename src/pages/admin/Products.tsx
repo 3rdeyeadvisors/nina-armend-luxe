@@ -47,7 +47,7 @@ import { useAdminStore, type ProductOverride } from '@/stores/adminStore';
 import { PRODUCT_SIZES } from '@/lib/constants';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const CATEGORIES = ['All', 'Top & Bottom', 'One-Piece', 'Other'] as const;
+const CATEGORIES = ['All', 'Top', 'Bottom', 'Top & Bottom', 'One-Piece', 'Other'] as const;
 
 export default function AdminProducts() {
   const { data: initialProducts, isLoading } = useProducts(1000);
