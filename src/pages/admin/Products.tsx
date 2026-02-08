@@ -56,8 +56,9 @@ export default function AdminProducts() {
   const { productOverrides, updateProductOverride, deleteProduct, _hasHydrated } = useAdminStore();
   const { isUploading, handleFileUpload, downloadTemplate, fileInputRef: syncInputRef } = useSpreadsheetSync();
   const { isPulling, isPushing, pullFromSquare, pushToSquare } = useSquareSync();
-  const { fetchProducts } = useProductsDb();
+  const { fetchProducts, upsertProduct, deleteProductDb } = useProductsDb();
   const [editingProduct, setEditingProduct] = useState<Partial<ProductOverride> | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
@@ -184,10 +185,17 @@ export default function AdminProducts() {
     );
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (productToDelete) {
-      deleteProduct(productToDelete);
-      toast.success("Product deleted successfully");
+      setIsSyncing(true);
+      const success = await deleteProductDb(productToDelete);
+      if (success) {
+        deleteProduct(productToDelete);
+        toast.success("Product deleted successfully");
+      } else {
+        toast.error("Failed to delete product from database");
+      }
+      setIsSyncing(false);
       setProductToDelete(null);
     }
   };
@@ -210,43 +218,31 @@ export default function AdminProducts() {
     setSelectedProducts(newSet);
   };
 
-  const bulkDelete = () => {
-    selectedProducts.forEach(id => deleteProduct(id));
-    toast.success(`${selectedProducts.size} products deleted`);
+  const bulkDelete = async () => {
+    setIsSyncing(true);
+    let successCount = 0;
+    for (const id of selectedProducts) {
+      const success = await deleteProductDb(id);
+      if (success) {
+        deleteProduct(id);
+        successCount++;
+      }
+    }
+    toast.success(`${successCount} products deleted`);
     setSelectedProducts(new Set());
     setShowBulkDeleteConfirm(false);
+    setIsSyncing(false);
   };
 
-  const moveProductToCategory = (productId: string, category: string) => {
-    // Ensure the product exists in overrides before updating category
+  const moveProductToCategory = async (productId: string, category: string) => {
+    setIsSyncing(true);
     const product = products.find(p => p.id === productId);
     if (product) {
       const existingOverride = productOverrides[productId];
-      if (!existingOverride) {
-        // Create a full override from the current product data
-        updateProductOverride(productId, {
-          title: product.title,
-          price: product.price.amount,
-          image: product.images[0]?.url || '',
-          description: product.description || '',
-          productType: product.productType,
-          inventory: 0,
-          category,
-        });
-      } else {
-        updateProductOverride(productId, { category });
-      }
-    }
-    toast.success(`Product moved to ${category}`);
-  };
-
-  const bulkMoveToCategory = (category: string) => {
-    selectedProducts.forEach(id => {
-      const product = products.find(p => p.id === id);
-      if (product) {
-        const existingOverride = productOverrides[id];
-        if (!existingOverride) {
-          updateProductOverride(id, {
+      const newOverride: Partial<ProductOverride> = existingOverride
+        ? { ...existingOverride, category }
+        : {
+            id: productId,
             title: product.title,
             price: product.price.amount,
             image: product.images[0]?.url || '',
@@ -254,14 +250,49 @@ export default function AdminProducts() {
             productType: product.productType,
             inventory: 0,
             category,
-          });
-        } else {
-          updateProductOverride(id, { category });
+          };
+
+      const success = await upsertProduct(newOverride as ProductOverride);
+      if (success) {
+        updateProductOverride(productId, newOverride);
+        toast.success(`Product moved to ${category}`);
+      } else {
+        toast.error("Failed to update category in database");
+      }
+    }
+    setIsSyncing(false);
+  };
+
+  const bulkMoveToCategory = async (category: string) => {
+    setIsSyncing(true);
+    let successCount = 0;
+    for (const id of selectedProducts) {
+      const product = products.find(p => p.id === id);
+      if (product) {
+        const existingOverride = productOverrides[id];
+        const newOverride: Partial<ProductOverride> = existingOverride
+          ? { ...existingOverride, category }
+          : {
+              id: id,
+              title: product.title,
+              price: product.price.amount,
+              image: product.images[0]?.url || '',
+              description: product.description || '',
+              productType: product.productType,
+              inventory: 0,
+              category,
+            };
+
+        const success = await upsertProduct(newOverride as ProductOverride);
+        if (success) {
+          updateProductOverride(id, newOverride);
+          successCount++;
         }
       }
-    });
-    toast.success(`${selectedProducts.size} products moved to ${category}`);
+    }
+    toast.success(`${successCount} products moved to ${category}`);
     setSelectedProducts(new Set());
+    setIsSyncing(false);
   };
 
   const handleAiDescription = () => {
@@ -288,7 +319,7 @@ export default function AdminProducts() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingProduct?.id) return;
     
     // Validation
@@ -301,10 +332,17 @@ export default function AdminProducts() {
       return;
     }
     
-    updateProductOverride(editingProduct.id, editingProduct);
-    toast.success(isAddingProduct ? "Product added successfully!" : "Product updated successfully!");
-    setEditingProduct(null);
-    setIsAddingProduct(false);
+    setIsSyncing(true);
+    const success = await upsertProduct(editingProduct as ProductOverride);
+    if (success) {
+      updateProductOverride(editingProduct.id, editingProduct);
+      toast.success(isAddingProduct ? "Product added successfully!" : "Product updated successfully!");
+      setEditingProduct(null);
+      setIsAddingProduct(false);
+    } else {
+      toast.error("Failed to save product to database");
+    }
+    setIsSyncing(false);
   };
 
   const startAdding = () => {
@@ -886,8 +924,11 @@ export default function AdminProducts() {
                 </div>
                 </div>
                 <DialogFooter className="flex-shrink-0 border-t pt-4 mt-2">
-                  <Button variant="outline" onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="font-sans text-[10px] uppercase tracking-widest">Cancel</Button>
-                  <Button onClick={handleSave} className="bg-primary font-sans text-[10px] uppercase tracking-widest">Save Changes</Button>
+                  <Button variant="outline" disabled={isSyncing} onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="font-sans text-[10px] uppercase tracking-widest">Cancel</Button>
+                  <Button disabled={isSyncing} onClick={handleSave} className="bg-primary font-sans text-[10px] uppercase tracking-widest">
+                    {isSyncing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                    Save Changes
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -901,8 +942,9 @@ export default function AdminProducts() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="font-sans text-[10px] uppercase tracking-widest">Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 font-sans text-[10px] uppercase tracking-widest text-white">
+                  <AlertDialogCancel disabled={isSyncing} className="font-sans text-[10px] uppercase tracking-widest">Cancel</AlertDialogCancel>
+                  <AlertDialogAction disabled={isSyncing} onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 font-sans text-[10px] uppercase tracking-widest text-white">
+                    {isSyncing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
                     Delete Product
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -918,8 +960,9 @@ export default function AdminProducts() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="font-sans text-[10px] uppercase tracking-widest">Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={bulkDelete} className="bg-destructive hover:bg-destructive/90 font-sans text-[10px] uppercase tracking-widest text-white">
+                  <AlertDialogCancel disabled={isSyncing} className="font-sans text-[10px] uppercase tracking-widest">Cancel</AlertDialogCancel>
+                  <AlertDialogAction disabled={isSyncing} onClick={bulkDelete} className="bg-destructive hover:bg-destructive/90 font-sans text-[10px] uppercase tracking-widest text-white">
+                    {isSyncing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
                     Delete {selectedProducts.size} Products
                   </AlertDialogAction>
                 </AlertDialogFooter>

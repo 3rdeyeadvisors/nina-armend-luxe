@@ -1,13 +1,15 @@
 import { useEffect, useCallback } from 'react';
 import { getSupabase } from '@/lib/supabaseClient';
 import { useAdminStore, type ProductOverride } from '@/stores/adminStore';
+import { useAuthStore, ADMIN_EMAIL } from '@/stores/authStore';
+import { toast } from 'sonner';
 
 /**
  * Hook to sync products with the database.
  * Fetches products on mount and provides functions to upsert/delete.
  */
 export function useProductsDb() {
-  const { productOverrides, updateProductOverride, deleteProduct } = useAdminStore();
+  const { updateProductOverride } = useAdminStore();
 
   // Fetch all products from database on mount
   const fetchProducts = useCallback(async () => {
@@ -50,97 +52,54 @@ export function useProductsDb() {
     }
   }, [updateProductOverride]);
 
-  // Upsert a product to the database
-  const upsertProduct = useCallback(async (product: ProductOverride) => {
+  // Internal helper for syncing via edge function
+  const syncWithEdgeFunction = async (products: ProductOverride | ProductOverride[]) => {
     try {
-      const supabase = getSupabase();
-      const { error } = await supabase
-        .from('products')
-        .upsert({
-          id: product.id,
-          title: product.title,
-          price: product.price,
-          inventory: product.inventory,
-          size_inventory: product.sizeInventory || {},
-          image: product.image,
-          description: product.description,
-          product_type: product.productType,
-          collection: product.collection,
-          category: product.category,
-          status: product.status,
-          item_number: product.itemNumber,
-          color_codes: product.colorCodes,
-          sizes: product.sizes,
-          is_deleted: product.isDeleted || false,
-        }, { onConflict: 'id' });
+      const userEmail = useAuthStore.getState().user?.email;
 
-      if (error) {
-        console.error('Error upserting product:', error);
-        // Don't throw - allow localStorage fallback
+      if (!userEmail || userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+        console.error('Admin access required to sync products');
+        return false;
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/sync-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          products,
+          adminEmail: userEmail,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Database sync failed:', result.error || 'Unknown error');
         return false;
       }
       return true;
     } catch (err) {
-      console.error('Failed to upsert product:', err);
+      console.error('Database sync exception:', err);
       return false;
     }
+  };
+
+  // Upsert a product to the database
+  const upsertProduct = useCallback(async (product: ProductOverride) => {
+    return await syncWithEdgeFunction(product);
   }, []);
 
   // Bulk upsert products to the database
   const bulkUpsertProducts = useCallback(async (products: ProductOverride[]) => {
-    try {
-      const supabase = getSupabase();
-      const rows = products.map(product => ({
-        id: product.id,
-        title: product.title,
-        price: product.price,
-        inventory: product.inventory,
-        size_inventory: product.sizeInventory || {},
-        image: product.image,
-        description: product.description,
-        product_type: product.productType,
-        collection: product.collection,
-        category: product.category,
-        status: product.status,
-        item_number: product.itemNumber,
-        color_codes: product.colorCodes,
-        sizes: product.sizes,
-        is_deleted: product.isDeleted || false,
-      }));
-
-      const { error } = await supabase
-        .from('products')
-        .upsert(rows, { onConflict: 'id' });
-
-      if (error) {
-        console.error('Error bulk upserting products:', error);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.error('Failed to bulk upsert products:', err);
-      return false;
-    }
+    return await syncWithEdgeFunction(products);
   }, []);
 
   // Soft delete a product in the database
   const deleteProductDb = useCallback(async (productId: string) => {
-    try {
-      const supabase = getSupabase();
-      const { error } = await supabase
-        .from('products')
-        .update({ is_deleted: true })
-        .eq('id', productId);
-
-      if (error) {
-        console.error('Error deleting product:', error);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.error('Failed to delete product:', err);
-      return false;
-    }
+    return await syncWithEdgeFunction({ id: productId, isDeleted: true } as any);
   }, []);
 
   // Load products from database on mount

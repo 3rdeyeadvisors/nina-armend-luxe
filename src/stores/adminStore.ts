@@ -41,10 +41,10 @@ export interface ProductOverride {
   isDeleted?: boolean;
   sizes?: string[];
   collection?: string;
-  category?: string; // 'Top & Bottom' | 'One-Piece' | 'Other'
+  category?: string;
   status?: 'Active' | 'Inactive' | 'Draft';
-  itemNumber?: string;     // SKU/Item number (e.g., "LB-001")
-  colorCodes?: string[];   // Array of hex colors (e.g., ["#FFD700", "#1A1A1A"])
+  itemNumber?: string;
+  colorCodes?: string[];
 }
 
 export interface AdminSettings {
@@ -73,45 +73,6 @@ interface AdminStore {
   updateSettings: (settings: Partial<AdminSettings>) => void;
 }
 
-const INITIAL_ORDERS: AdminOrder[] = [
-  {
-    id: '#ORD-7829',
-    customerName: 'Alice Johnson',
-    customerEmail: 'alice@example.com',
-    date: '2025-05-15',
-    total: '160.00',
-    shippingCost: '12.50',
-    itemCost: '45.00',
-    status: 'Delivered',
-    trackingNumber: 'NA-982341',
-    items: [
-      { title: 'Copacabana Triangle Top', quantity: 1, price: '85.00', image: 'https://images.unsplash.com/photo-1585924756944-b82af627eca9?auto=format&fit=crop&q=80&w=200', size: 'M' },
-      { title: 'Copacabana Tie Bottom', quantity: 1, price: '75.00', image: 'https://images.unsplash.com/photo-1585924756944-b82af627eca9?auto=format&fit=crop&q=80&w=200', size: 'S' }
-    ]
-  },
-  {
-    id: '#ORD-7830',
-    customerName: 'Bob Smith',
-    customerEmail: 'bob@example.com',
-    date: '2025-05-16',
-    total: '85.00',
-    shippingCost: '0.00',
-    itemCost: '25.00',
-    status: 'Processing',
-    trackingNumber: 'Pending',
-    items: [
-      { title: 'Ipanema Bandeau Top', quantity: 1, price: '85.00', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=200', size: 'L' }
-    ]
-  }
-];
-
-const INITIAL_CUSTOMERS: AdminCustomer[] = [
-  { id: 'c1', name: 'Alice Johnson', email: 'alice@example.com', totalSpent: '1250.00', orderCount: 5, joinDate: '2024-12-01' },
-  { id: 'c2', name: 'Bob Smith', email: 'bob@example.com', totalSpent: '450.00', orderCount: 2, joinDate: '2025-01-15' },
-  { id: 'c3', name: 'Charlie Davis', email: 'charlie@example.com', totalSpent: '245.00', orderCount: 1, joinDate: '2025-03-10' },
-  { id: 'c4', name: 'Diana Prince', email: 'diana@amazon.com', totalSpent: '890.00', orderCount: 3, joinDate: '2025-02-20' }
-];
-
 const INITIAL_SETTINGS: AdminSettings = {
   storeName: 'NINA ARMEND',
   currency: 'USD',
@@ -124,8 +85,8 @@ const INITIAL_SETTINGS: AdminSettings = {
 export const useAdminStore = create<AdminStore>()(
   persist(
     (set) => ({
-      orders: INITIAL_ORDERS,
-      customers: INITIAL_CUSTOMERS,
+      orders: [],
+      customers: [],
       productOverrides: {},
       settings: INITIAL_SETTINGS,
       _hasHydrated: false,
@@ -145,9 +106,8 @@ export const useAdminStore = create<AdminStore>()(
         const current = state.productOverrides[id] || {};
         const newOverride = { ...current, ...override, id } as ProductOverride;
 
-        // Ensure inventory (total) is synced with sizeInventory if it was updated
-        if (override.sizeInventory) {
-          newOverride.inventory = Object.values(override.sizeInventory).reduce((acc, val) => acc + val, 0);
+        if (newOverride.sizeInventory) {
+          newOverride.inventory = Object.values(newOverride.sizeInventory).reduce((acc, val) => acc + (val || 0), 0);
         }
 
         return {
@@ -160,42 +120,25 @@ export const useAdminStore = create<AdminStore>()(
 
       decrementInventory: (productId, size, quantity) => set((state) => {
         const currentOverride = state.productOverrides[productId];
+        if (!currentOverride) return state;
 
-        // If no override exists yet, we create one starting from a default base
-        // In a real app, we'd fetch the product details first, but here we can
-        // initialize it with defaults or use the provided data.
-        const sizeInventory = currentOverride?.sizeInventory || {
-          'XS': 15, 'S': 15, 'M': 15, 'L': 15, 'XL': 15, '2XL': 15
-        };
-
-        const currentSizeStock = sizeInventory[size] !== undefined
-          ? sizeInventory[size]
-          : (currentOverride ? 0 : 15);
+        const sizeInventory = { ...(currentOverride.sizeInventory || {}) };
+        const currentSizeStock = sizeInventory[size] || 0;
         const newSizeStock = Math.max(0, currentSizeStock - quantity);
 
-        const newSizeInventory = {
-          ...sizeInventory,
-          [size]: newSizeStock
-        };
-
-        const newTotalInventory = Object.values(newSizeInventory).reduce((acc, val) => acc + val, 0);
+        sizeInventory[size] = newSizeStock;
+        const newTotalInventory = Object.values(sizeInventory).reduce((acc, val) => acc + (val || 0), 0);
 
         const updatedOverride = {
-          ...(currentOverride || {
-            id: productId,
-            title: 'Product', // Fallback, usually updated by other means
-            price: '0.00',
-            image: '',
-            description: '',
-          }),
-          sizeInventory: newSizeInventory,
+          ...currentOverride,
+          sizeInventory,
           inventory: newTotalInventory
         };
 
         return {
           productOverrides: {
             ...state.productOverrides,
-            [productId]: updatedOverride as ProductOverride
+            [productId]: updatedOverride
           }
         };
       }),
