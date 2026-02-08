@@ -74,11 +74,24 @@ export function useProductsDb() {
 
       if (error) {
         console.error('Database sync failed:', error);
+        // Include more details if available in the error object
+        if (typeof error === 'object' && error !== null) {
+          try {
+            const errorDetails = JSON.stringify(error);
+            console.error('Sync error details:', errorDetails);
+          } catch (e) {
+            console.error('Could not stringify sync error');
+          }
+        }
         return false;
       }
       return true;
     } catch (err) {
       console.error('Database sync exception:', err);
+      if (err instanceof Error) {
+        console.error('Exception message:', err.message);
+        console.error('Exception stack:', err.stack);
+      }
       return false;
     }
   };
