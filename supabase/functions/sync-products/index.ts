@@ -42,10 +42,19 @@ serve(async (req) => {
       );
     }
 
-    if (!products || !Array.isArray(products) || products.length === 0) {
+    if (!products) {
       return new Response(
         JSON.stringify({ error: 'No products provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const productList = Array.isArray(products) ? products : [products];
+
+    if (productList.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, count: 0 }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -56,25 +65,25 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Prepare products for upsert
-    const rows: ProductData[] = products.map((p: ProductData) => ({
+    const rows = productList.map((p: any) => ({
       id: p.id,
-      title: p.title,
-      price: p.price,
-      inventory: p.inventory,
-      size_inventory: p.size_inventory || {},
-      image: p.image,
-      description: p.description,
-      product_type: p.product_type,
-      collection: p.collection,
-      category: p.category,
-      status: p.status,
-      item_number: p.item_number,
-      color_codes: p.color_codes,
-      sizes: p.sizes,
-      is_deleted: false,
+      title: p.title || '',
+      price: p.price || '0.00',
+      inventory: p.inventory !== undefined ? p.inventory : 0,
+      size_inventory: p.size_inventory || p.sizeInventory || {},
+      image: p.image || '',
+      description: p.description || '',
+      product_type: p.product_type || p.productType || 'Other',
+      collection: p.collection || '',
+      category: p.category || 'Other',
+      status: p.status || 'Active',
+      item_number: p.item_number || p.itemNumber || null,
+      color_codes: p.color_codes || p.colorCodes || [],
+      sizes: p.sizes || [],
+      is_deleted: p.is_deleted !== undefined ? p.is_deleted : (p.isDeleted !== undefined ? p.isDeleted : false),
     }));
 
-    console.log('[sync-products] Upserting', rows.length, 'products');
+    console.log(`[sync-products] Upserting ${rows.length} products`);
 
     const { data, error } = await supabase
       .from('products')
@@ -88,8 +97,6 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('[sync-products] Success! Upserted', data?.length || 0, 'products');
 
     return new Response(
       JSON.stringify({ success: true, count: data?.length || 0 }),
