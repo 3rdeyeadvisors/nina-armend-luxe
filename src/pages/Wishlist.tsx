@@ -2,41 +2,32 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { useWishlistStore } from '@/stores/wishlistStore';
-import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { Product } from '@/hooks/useProducts';
+import { PRODUCT_SIZES } from '@/lib/constants';
 
-// Helper to convert wishlist item to Product format
+// Helper to convert wishlist item to Product format (flattened structure)
 function wishlistItemToProduct(item: { id: string; title: string; handle: string; price: string; image: string }): Product {
+  const sizes = [...PRODUCT_SIZES];
   return {
-    node: {
-      id: item.id,
-      title: item.title,
-      description: '',
-      handle: item.handle,
-      productType: 'Bikini',
-      priceRange: {
-        minVariantPrice: {
-          amount: item.price,
-          currencyCode: 'USD',
-        },
-      },
-      images: {
-        edges: [{ node: { url: item.image, altText: item.title } }],
-      },
-      variants: {
-        edges: ['XS', 'S', 'M', 'L', 'XL', '2XL'].map(size => ({
-          node: {
-            id: `${item.id}-${size.toLowerCase()}`,
-            title: size,
-            price: { amount: item.price, currencyCode: 'USD' },
-            availableForSale: true,
-            selectedOptions: [{ name: 'Size', value: size }],
-          },
-        })),
-      },
-      options: [{ name: 'Size', values: ['XS', 'S', 'M', 'L', 'XL', '2XL'] }],
+    id: item.id,
+    title: item.title,
+    description: '',
+    handle: item.handle,
+    productType: 'Bikini',
+    price: {
+      amount: item.price,
+      currencyCode: 'USD',
     },
+    images: [{ url: item.image, altText: item.title }],
+    variants: sizes.map(size => ({
+      id: `${item.id}-${size.toLowerCase()}`,
+      title: size,
+      price: { amount: item.price, currencyCode: 'USD' },
+      availableForSale: true,
+      selectedOptions: [{ name: 'Size', value: size }],
+    })),
+    options: [{ name: 'Size', values: sizes }],
   };
 }
 

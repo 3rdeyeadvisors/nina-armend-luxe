@@ -251,7 +251,18 @@ export default function AdminProducts() {
   };
 
   const handleSave = () => {
-    if (!editingProduct || !editingProduct.id) return;
+    if (!editingProduct?.id) return;
+    
+    // Validation
+    if (!editingProduct.title?.trim()) {
+      toast.error("Product name is required");
+      return;
+    }
+    if (!editingProduct.price || parseFloat(editingProduct.price) <= 0) {
+      toast.error("Valid price is required");
+      return;
+    }
+    
     updateProductOverride(editingProduct.id, editingProduct);
     toast.success(isAddingProduct ? "Product added successfully!" : "Product updated successfully!");
     setEditingProduct(null);
@@ -425,7 +436,10 @@ export default function AdminProducts() {
                     const override = productOverrides[product.id];
                     const sizes = product.options.find(o => o.name === 'Size')?.values || override?.sizes || [];
                     const sizeInventory = override?.sizeInventory || {};
-                    const totalStock = override?.inventory ?? Object.values(sizeInventory).reduce((a, b) => a + b, 0);
+                    const hasInventoryData = override?.inventory !== undefined || Object.keys(sizeInventory).length > 0;
+                    const totalStock = hasInventoryData 
+                      ? (override?.inventory ?? Object.values(sizeInventory).reduce((a, b) => a + b, 0))
+                      : 45; // Default stock when no data exists
                     
                     return (
                       <TableRow key={product.id}>
@@ -459,7 +473,10 @@ export default function AdminProducts() {
                         <TableCell>
                           <div className="flex flex-wrap gap-1.5 max-w-[200px]">
                             {sizes.map(s => {
-                              const stock = sizeInventory[s] ?? 0;
+                              // Use sizeInventory if available, otherwise distribute default stock evenly
+                              const stock = Object.keys(sizeInventory).length > 0 
+                                ? (sizeInventory[s] ?? 0)
+                                : Math.floor(totalStock / sizes.length);
                               const colorClass = stock === 0 
                                 ? 'bg-red-100 text-red-700 border-red-200' 
                                 : stock <= 5 
@@ -541,13 +558,14 @@ export default function AdminProducts() {
                 setIsAddingProduct(false);
               }
             }}>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
+              <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0">
                   <DialogTitle className="font-serif text-2xl">{isAddingProduct ? 'Add New Product' : 'Edit Product'}</DialogTitle>
                   <DialogDescription className="font-sans text-sm text-muted-foreground">
                     {isAddingProduct ? 'Enter the details for the new product.' : 'Make changes to your product here. Click save when you\'re done.'}
                   </DialogDescription>
                 </DialogHeader>
+                <div className="flex-1 overflow-y-auto pr-2">
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right font-sans text-[10px] uppercase tracking-widest">Name</Label>
@@ -714,7 +732,8 @@ export default function AdminProducts() {
                     />
                   </div>
                 </div>
-                <DialogFooter>
+                </div>
+                <DialogFooter className="flex-shrink-0 border-t pt-4 mt-2">
                   <Button variant="outline" onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="font-sans text-[10px] uppercase tracking-widest">Cancel</Button>
                   <Button onClick={handleSave} className="bg-primary font-sans text-[10px] uppercase tracking-widest">Save Changes</Button>
                 </DialogFooter>
