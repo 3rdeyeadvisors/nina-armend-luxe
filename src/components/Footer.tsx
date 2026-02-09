@@ -8,9 +8,9 @@ import { toast } from 'sonner';
 const footerLinks = {
   shop: [
     { name: 'All Products', href: '/shop' },
-    { name: 'Bikinis', href: '/shop?category=bikinis' },
+    { name: 'Tops', href: '/shop?category=tops' },
+    { name: 'Bottoms', href: '/shop?category=bottoms' },
     { name: 'One-Pieces', href: '/shop?category=one-pieces' },
-    { name: 'Cover-ups', href: '/shop?category=cover-ups' },
   ],
   help: [
     { name: 'Size Guide & Quiz', href: '/size-quiz' },
