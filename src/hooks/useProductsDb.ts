@@ -1,13 +1,16 @@
 import { useEffect, useCallback } from 'react';
 import { getSupabase } from '@/lib/supabaseClient';
 import { useAdminStore, type ProductOverride } from '@/stores/adminStore';
-import { useAuthStore, ADMIN_EMAIL } from '@/stores/authStore';
 import { useCloudAuthStore } from '@/stores/cloudAuthStore';
 import { toast } from 'sonner';
 
 /**
  * Hook to sync products with the database and Square.
  * Products are automatically synced to Square whenever they are added/edited/deleted.
+ * 
+ * SECURITY: Authentication is now handled server-side via JWT validation in edge functions.
+ * The client only needs to pass the authorization header which is automatically included
+ * by the Supabase client when the user is logged in.
  */
 export function useProductsDb() {
   const { updateProductOverride } = useAdminStore();
@@ -54,37 +57,43 @@ export function useProductsDb() {
   }, [updateProductOverride]);
 
   // Internal helper for syncing via edge function (includes auto-push to Square)
+  // SECURITY: No longer passes adminEmail - server validates JWT instead
   const syncWithEdgeFunction = async (products: ProductOverride | ProductOverride[]) => {
     try {
-      // Check both legacy and cloud auth systems
-      const legacyEmail = useAuthStore.getState().user?.email;
-      const cloudEmail = useCloudAuthStore.getState().user?.email;
-      const userEmail = legacyEmail || cloudEmail;
+      // Check if user is authenticated via Cloud Auth
+      const cloudUser = useCloudAuthStore.getState().user;
+      const isAuthenticated = useCloudAuthStore.getState().isAuthenticated;
 
-      if (!userEmail || userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-        console.error('Admin access required to sync products');
-        toast.error('Admin login required to save products to database. Please log in.');
+      if (!isAuthenticated || !cloudUser) {
+        console.error('Authentication required to sync products');
+        toast.error('Please log in to save products to database.');
         return false;
       }
 
       const supabase = getSupabase();
+      
+      // The edge function now validates admin role server-side via JWT
+      // The authorization header is automatically included by Supabase client
       const { data, error } = await supabase.functions.invoke('sync-products', {
-        body: {
-          products,
-          adminEmail: userEmail,
-        },
+        body: { products },
       });
 
       if (error) {
         console.error('[useProductsDb] Database sync failed:', error);
-        // Include more details if available in the error object
-        try {
-          const errorBody = await (error as any).response?.json();
-          console.error('[useProductsDb] Sync error body:', errorBody);
-          toast.error(`Database sync failed: ${errorBody?.error || error.message || 'Unknown error'}`);
-        } catch (e) {
-          console.error('[useProductsDb] Could not parse error body:', error);
-          toast.error(`Database sync failed: ${error.message || 'Unknown error'}`);
+        // Handle specific error cases
+        if (error.message?.includes('Forbidden') || error.message?.includes('403')) {
+          toast.error('Admin access required to modify products.');
+        } else if (error.message?.includes('Unauthorized') || error.message?.includes('401')) {
+          toast.error('Please log in again to save products.');
+        } else {
+          try {
+            const errorBody = await (error as any).response?.json();
+            console.error('[useProductsDb] Sync error body:', errorBody);
+            toast.error(`Database sync failed: ${errorBody?.error || error.message || 'Unknown error'}`);
+          } catch (e) {
+            console.error('[useProductsDb] Could not parse error body:', error);
+            toast.error(`Database sync failed: ${error.message || 'Unknown error'}`);
+          }
         }
         return false;
       }
@@ -96,7 +105,10 @@ export function useProductsDb() {
 
       if (squareError) {
         console.warn('[useProductsDb] Square auto-sync failed (non-blocking):', squareError);
-        toast.warning('Database updated, but Square sync failed. Check your Square API token.');
+        // Only show warning if it's not an auth error (user might not have Square configured)
+        if (!squareError.message?.includes('Unauthorized') && !squareError.message?.includes('401')) {
+          toast.warning('Database updated, but Square sync failed. Check your Square API token.');
+        }
       } else {
         console.log('[useProductsDb] Auto-synced to Square:', squareData);
       }
