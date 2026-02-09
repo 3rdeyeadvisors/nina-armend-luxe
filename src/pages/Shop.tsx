@@ -9,9 +9,9 @@ const Shop = () => {
   const category = searchParams.get('category');
   
   const categoryTitles: Record<string, string> = {
-    bikinis: 'Bikinis',
+    tops: 'Tops',
+    bottoms: 'Bottoms',
     'one-pieces': 'One-Pieces',
-    'cover-ups': 'Cover-ups',
   };
 
   const title = category ? categoryTitles[category] || 'Shop' : 'Shop All';

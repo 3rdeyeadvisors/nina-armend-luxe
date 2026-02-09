@@ -75,15 +75,31 @@ export function useProducts(first: number = 20, query?: string) {
       .filter(o => !o.isDeleted && o.title)
       .map(overrideToProduct);
 
-    // Apply search filter
+    // Apply search/category filter
     let filteredProducts = allProducts;
     if (query) {
       const q = query.toLowerCase();
-      filteredProducts = allProducts.filter(p => {
-        const title = p.title.toLowerCase();
-        const type = (p.productType || '').toLowerCase();
-        return title.includes(q) || type.includes(q);
-      });
+      // Map URL params to database category values
+      const categoryMap: Record<string, string[]> = {
+        tops: ['Top', 'Top & Bottom'],
+        bottoms: ['Bottom', 'Top & Bottom'],
+        'one-pieces': ['One-Piece'],
+      };
+      const matchCategories = categoryMap[q];
+      
+      if (matchCategories) {
+        // Filter by category field
+        filteredProducts = allProducts.filter(p => 
+          matchCategories.includes(p.category || '')
+        );
+      } else {
+        // Fallback to text search
+        filteredProducts = allProducts.filter(p => {
+          const title = p.title.toLowerCase();
+          const type = (p.productType || '').toLowerCase();
+          return title.includes(q) || type.includes(q);
+        });
+      }
     }
 
     return filteredProducts.slice(0, first);

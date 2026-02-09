@@ -3,19 +3,19 @@ import { Link } from 'react-router-dom';
 
 const categories = [
   {
-    name: 'Bikinis',
-    href: '/shop?category=bikinis',
-    description: 'Classic Brazilian cuts',
+    name: 'Tops',
+    href: '/shop?category=tops',
+    description: 'Mix & match your style',
+  },
+  {
+    name: 'Bottoms',
+    href: '/shop?category=bottoms',
+    description: 'Complete your look',
   },
   {
     name: 'One-Pieces',
     href: '/shop?category=one-pieces',
     description: 'Elegant & sophisticated',
-  },
-  {
-    name: 'Cover-ups',
-    href: '/shop?category=cover-ups',
-    description: 'Beach to bar ready',
   },
 ];
 
