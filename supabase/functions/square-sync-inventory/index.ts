@@ -41,21 +41,71 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const SQUARE_ACCESS_TOKEN = Deno.env.get('SQUARE_ACCESS_TOKEN')
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized - no authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const SQUARE_ACCESS_TOKEN = Deno.env.get('SQUARE_ACCESS_TOKEN');
+
+    // Validate the user's JWT token
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('[SquareSync] Auth error:', authError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has admin role using the has_role function
+    const { data: isAdmin, error: roleError } = await userClient.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (roleError) {
+      console.error('[SquareSync] Role check error:', roleError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to verify admin status' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isAdmin) {
+      console.warn('[SquareSync] Access denied for user:', user.email);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden - admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse request body - apiKey from client is only used as fallback if env var is not set
     const { action, apiKey } = await req.json()
-    const FINAL_SQUARE_TOKEN = apiKey || SQUARE_ACCESS_TOKEN
+    
+    // Prefer environment variable over client-provided key for security
+    const FINAL_SQUARE_TOKEN = SQUARE_ACCESS_TOKEN || apiKey
 
     if (!FINAL_SQUARE_TOKEN) {
       throw new Error('Square Access Token is not configured. Please provide it in settings.')
     }
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error('Supabase configuration missing')
-    }
 
+    // Create service role client for database operations
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    console.log(`[SquareSync] User ${user.email} initiated ${action} action`);
 
     if (action === 'pull') {
       // Pull inventory from Square to local database

@@ -31,16 +31,59 @@ serve(async (req) => {
   }
 
   try {
-    const { products, adminEmail } = await req.json();
-
-    // Validate admin email (simple check - in production use proper auth)
-    const ADMIN_EMAIL = 'lydia@ninaarmend.co.site';
-    if (adminEmail?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - admin access required' }),
+        JSON.stringify({ error: 'Unauthorized - no authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Supabase client with the user's JWT to validate their session
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Validate the user's JWT token
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('[sync-products] Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has admin role using the has_role function
+    const { data: isAdmin, error: roleError } = await userClient.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (roleError) {
+      console.error('[sync-products] Role check error:', roleError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify admin status' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isAdmin) {
+      console.warn('[sync-products] Access denied for user:', user.email);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Parse request body
+    const { products } = await req.json();
 
     if (!products) {
       return new Response(
@@ -58,10 +101,7 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with service role (bypasses RLS)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+    // Create service role client for database operations (bypasses RLS)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Prepare products for upsert
@@ -108,7 +148,7 @@ serve(async (req) => {
       index === self.findIndex((r) => r.id === row.id)
     );
 
-    console.log(`[sync-products] Upserting ${uniqueRows.length} products (deduplicated from ${rows.length})`);
+    console.log(`[sync-products] User ${user.email} upserting ${uniqueRows.length} products (deduplicated from ${rows.length})`);
 
     const { data, error } = await supabase
       .from('products')
