@@ -15,6 +15,7 @@ interface SquareInventoryCount {
 interface SquareCatalogItem {
   id: string
   type: string
+  updated_at?: string  // Square provides this for conflict resolution
   image_ids?: string[]
   item_data?: {
     name?: string
@@ -24,6 +25,7 @@ interface SquareCatalogItem {
     image_ids?: string[]
     variations?: Array<{
       id: string
+      updated_at?: string
       item_variation_data?: {
         sku?: string
         name?: string
@@ -343,13 +345,51 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Upsert products into database
-      const productsToUpsert = items.map(item => {
+      // Fetch existing local products to compare timestamps
+      const squareItemIds = items.map(item => item.id)
+      const { data: localProducts } = await supabase
+        .from('products')
+        .select('id, updated_at, inventory')
+        .in('id', squareItemIds)
+
+      const localProductMap = new Map<string, { updated_at: string; inventory: number }>()
+      for (const lp of localProducts || []) {
+        localProductMap.set(lp.id, { updated_at: lp.updated_at, inventory: lp.inventory })
+      }
+
+      console.log('[SquareSync] Local products found for comparison:', localProductMap.size)
+
+      // Build products to upsert, comparing timestamps for conflict resolution
+      const productsToUpsert: Record<string, unknown>[] = []
+      let skippedCount = 0
+
+      for (const item of items) {
         const variation = item.item_data?.variations?.[0]
         const variantId = variation?.id || item.id
-        const inventory = inventoryMap.get(variantId) || 0
+        const squareInventory = inventoryMap.get(variantId) || 0
         const priceAmount = variation?.item_variation_data?.price_money?.amount || 0
         const name = item.item_data?.name || 'Unknown Product'
+        
+        // Get Square's updated_at timestamp
+        const squareUpdatedAt = item.updated_at || variation?.updated_at
+        const localProduct = localProductMap.get(item.id)
+        
+        // Timestamp-based conflict resolution
+        let shouldUpdateFromSquare = true
+        let finalInventory = squareInventory
+        
+        if (localProduct && squareUpdatedAt) {
+          const squareTime = new Date(squareUpdatedAt).getTime()
+          const localTime = new Date(localProduct.updated_at).getTime()
+          
+          if (localTime > squareTime) {
+            // Local is newer - keep local inventory, but still update other fields from Square
+            finalInventory = localProduct.inventory
+            console.log(`[SquareSync] ${name}: Local is newer (${localProduct.updated_at} > ${squareUpdatedAt}), keeping local inventory: ${finalInventory}`)
+          } else {
+            console.log(`[SquareSync] ${name}: Square is newer, using Square inventory: ${finalInventory}`)
+          }
+        }
         
         // Get the first image URL for this item
         const itemImageIds = item.item_data?.image_ids || item.image_ids || []
@@ -374,7 +414,7 @@ Deno.serve(async (req) => {
           description: item.item_data?.description || `${name} from Square catalog`,
           item_number: variation?.item_variation_data?.sku || null,
           price: (priceAmount / 100).toFixed(2),
-          inventory: inventory,
+          inventory: finalInventory,
           status: 'Active',
           product_type: productType,
           category: productType,
@@ -391,10 +431,10 @@ Deno.serve(async (req) => {
 
         console.log('[SquareSync] Mapped product:', name, '- Price:', product.price, '- Inventory:', product.inventory, '- Has Image:', !!imageUrl)
         
-        return product
-      })
+        productsToUpsert.push(product)
+      }
 
-      console.log('[SquareSync] Products to upsert:', productsToUpsert.length)
+      console.log('[SquareSync] Products to upsert:', productsToUpsert.length, 'Skipped (local newer):', skippedCount)
 
       if (productsToUpsert.length > 0) {
         const { data, error: upsertError } = await supabase

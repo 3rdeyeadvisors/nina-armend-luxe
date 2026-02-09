@@ -24,6 +24,34 @@ interface ProductData {
   is_deleted: boolean;
 }
 
+// Auto-sync inventory changes to Square
+async function syncToSquare(
+  supabaseUrl: string,
+  authHeader: string
+): Promise<void> {
+  try {
+    // Call the Square sync edge function to push changes
+    const response = await fetch(`${supabaseUrl}/functions/v1/square-sync-inventory`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action: 'push' })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('[sync-products] Auto-synced to Square:', result.message);
+    } else {
+      const errorText = await response.text();
+      console.warn('[sync-products] Square auto-sync failed:', errorText);
+    }
+  } catch (err) {
+    console.error('[sync-products] Square auto-sync error:', err);
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -176,8 +204,31 @@ serve(async (req) => {
       );
     }
 
+    // Check if auto-sync to Square is enabled
+    const { data: settingsData } = await supabase
+      .from('store_settings')
+      .select('auto_sync, pos_provider')
+      .limit(1)
+      .maybeSingle();
+
+    const autoSyncEnabled = settingsData?.auto_sync ?? false;
+    const posProvider = settingsData?.pos_provider;
+
+    // Auto-sync to Square if enabled
+    if (autoSyncEnabled && posProvider === 'square') {
+      console.log('[sync-products] Auto-sync enabled, pushing to Square...');
+      // Don't await - let it run in background to not slow down the response
+      syncToSquare(supabaseUrl, authHeader).catch(err => 
+        console.error('[sync-products] Background Square sync failed:', err)
+      );
+    }
+
     return new Response(
-      JSON.stringify({ success: true, count: data?.length || 0 }),
+      JSON.stringify({ 
+        success: true, 
+        count: data?.length || 0,
+        autoSynced: autoSyncEnabled && posProvider === 'square'
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
