@@ -24,6 +24,8 @@ import AdminSettings from "./pages/admin/Settings";
 import SearchPage from "./pages/Search";
 import Wishlist from "./pages/Wishlist";
 import About from "./pages/About";
+import Checkout from "./pages/Checkout";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 import Sustainability from "./pages/Sustainability";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -76,17 +78,23 @@ function AppContent() {
             <AdminCustomers />
           </ProtectedRoute>
         } />
-        <Route path="/admin/pos" element={
+        <Route path="/admin/pos" element={<ProtectedRoute adminOnly>
+            <AdminPOS />
+          </ProtectedRoute> /*
           <ProtectedRoute adminOnly>
             <AdminPOS />
           </ProtectedRoute>
-        } />
-        <Route path="/admin/settings" element={
+        } /*  />
+        <Route path="/admin/settings" element={<ProtectedRoute adminOnly>
+            <AdminPOS />
+          </ProtectedRoute> /*
           <ProtectedRoute adminOnly>
             <AdminSettings />
           </ProtectedRoute>
         } />
 
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/checkout/success" element={<CheckoutSuccess />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/about" element={<About />} />

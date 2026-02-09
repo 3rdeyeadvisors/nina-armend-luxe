@@ -2,21 +2,25 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, Minus, Trash2, CreditCard, User, ShoppingBag, CheckCircle } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CreditCard, User, ShoppingBag, CheckCircle, X, Loader2 } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import { useAdminStore, type AdminOrder, type ProductOverride } from '@/stores/adminStore';
 import { useOrdersDb } from '@/hooks/useOrdersDb';
 import { useProductsDb } from '@/hooks/useProductsDb';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { playSound } from '@/lib/sounds';
+import { getSupabase } from '@/lib/supabaseClient';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface PosItem {
   id: string;
@@ -25,6 +29,195 @@ interface PosItem {
   image: string;
   quantity: number;
   size: string;
+}
+
+interface POSCheckoutDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  items: PosItem[];
+  subtotal: number;
+  onComplete: (paymentData: any) => Promise<void>;
+}
+
+function POSCheckoutDialog({ isOpen, onClose, items, subtotal, onComplete }: POSCheckoutDialogProps) {
+  const { settings } = useAdminStore();
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'other'>('cash');
+  const [customerName, setCustomerName] = useState('In-Store Customer');
+  const [customerEmail, setCustomerEmail] = useState('pos@ninaarmend.co.site');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const cardRef = useRef<any>(null);
+
+  const taxAmount = subtotal * (settings.taxRate / 100);
+  const total = subtotal + taxAmount;
+
+  useEffect(() => {
+    let isMounted = true;
+    let cardInstance: any = null;
+
+    if (paymentMethod === 'card' && isOpen && settings.squareApplicationId && settings.squareLocationId) {
+      const initializePayments = async () => {
+        // Poll for Square SDK availability
+        let attempts = 0;
+        while (!window.Square && attempts < 10 && isMounted) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
+        }
+
+        if (!window.Square || !isMounted) return;
+
+        try {
+          const payments = window.Square.payments(settings.squareApplicationId, settings.squareLocationId);
+          const card = await payments.card();
+          await card.attach('#card-container');
+
+          if (isMounted) {
+            cardRef.current = card;
+            cardInstance = card;
+          } else {
+            card.destroy();
+          }
+        } catch (e) {
+          console.error('Failed to initialize Square:', e);
+          if (isMounted) toast.error('Failed to load payment form');
+        }
+      };
+
+      initializePayments();
+    }
+
+    return () => {
+      isMounted = false;
+      if (cardInstance) {
+        cardInstance.destroy().catch(console.error);
+      }
+    };
+  }, [paymentMethod, isOpen, settings.squareApplicationId, settings.squareLocationId]);
+
+  const handleConfirm = async () => {
+    setIsProcessing(true);
+    try {
+      let paymentResult = { method: paymentMethod, success: true };
+
+      if (paymentMethod === 'card') {
+        if (!cardRef.current) {
+          throw new Error('Payment form not ready');
+        }
+        const result = await cardRef.current.tokenize();
+        if (result.status !== 'OK') {
+          throw new Error(result.errors?.[0]?.message || 'Card tokenization failed');
+        }
+        paymentResult = { ...paymentResult, token: result.token };
+      }
+
+      await onComplete({
+        ...paymentResult,
+        customerName,
+        customerEmail
+      });
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isProcessing && onClose()}>
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-background border-primary/20 shadow-gold">
+        <DialogHeader className="p-6 bg-primary/5 border-b border-primary/10">
+          <DialogTitle className="font-serif text-2xl">POS Checkout</DialogTitle>
+        </DialogHeader>
+
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Customer Name</Label>
+              <Input
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="font-sans text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Email Address</Label>
+              <Input
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                className="font-sans text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">Payment Method</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                className="flex flex-col h-20 gap-2 font-sans text-[10px] uppercase tracking-widest"
+                onClick={() => setPaymentMethod('cash')}
+              >
+                <ShoppingBag className="h-5 w-5" />
+                Cash
+              </Button>
+              <Button
+                variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                className="flex flex-col h-20 gap-2 font-sans text-[10px] uppercase tracking-widest"
+                onClick={() => setPaymentMethod('card')}
+              >
+                <CreditCard className="h-5 w-5" />
+                Card
+              </Button>
+              <Button
+                variant={paymentMethod === 'other' ? 'default' : 'outline'}
+                className="flex flex-col h-20 gap-2 font-sans text-[10px] uppercase tracking-widest"
+                onClick={() => setPaymentMethod('other')}
+              >
+                <CheckCircle className="h-5 w-5" />
+                Other
+              </Button>
+            </div>
+          </div>
+
+          {paymentMethod === 'card' && (
+            <div className="p-4 bg-secondary/20 rounded-xl border border-border/50 space-y-4">
+              <div id="card-container" className="min-h-[100px]">
+                {!window.Square && <p className="text-xs text-center text-muted-foreground py-8">Loading Secure Payment Gateway...</p>}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-secondary/10 p-4 rounded-xl space-y-2 border border-border/30">
+            <div className="flex justify-between text-sm font-sans">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm font-sans">
+              <span className="text-muted-foreground">Tax ({settings.taxRate}%)</span>
+              <span>${taxAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-serif text-xl pt-2 border-t border-border/30 text-primary">
+              <span>Total Due</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="p-6 bg-secondary/5 border-t flex gap-3">
+          <Button variant="outline" onClick={onClose} disabled={isProcessing} className="flex-1 font-sans uppercase tracking-widest text-[10px]">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={isProcessing}
+            className="flex-1 font-sans uppercase tracking-widest text-[10px] bg-primary text-primary-foreground h-12"
+          >
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : `Confirm & Pay $${total.toFixed(2)}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function AdminPOS() {
@@ -37,6 +230,7 @@ export default function AdminPOS() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectingProduct, setSelectingProduct] = useState<Product | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   const products = useMemo(() => {
     if (!initialProducts) return [];
@@ -45,7 +239,7 @@ export default function AdminPOS() {
 
     if (!searchQuery) return baseProducts;
     const q = searchQuery.toLowerCase();
-    return baseProducts.filter(p => p.title.toLowerCase().includes(q));
+    return baseProducts.filter(p => p.title.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q)));
   }, [initialProducts, productOverrides, searchQuery]);
 
   const addToCart = (product: Product) => {
@@ -91,17 +285,39 @@ export default function AdminPOS() {
   const taxAmount = subtotal * (settings.taxRate / 100);
   const cartTotal = subtotal + taxAmount;
 
-  const completeSale = async () => {
-    if (posCart.length === 0) return;
-
+  const completeSale = async (paymentData: any) => {
     setIsProcessing(true);
 
     try {
-      // Decrement inventory and update DB for each item
+      if (paymentData.method === 'card' && paymentData.token) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.functions.invoke('process-payment', {
+          body: {
+            sourceId: paymentData.token,
+            amount: cartTotal.toFixed(2),
+            currency: 'USD',
+            locationId: settings.squareLocationId,
+            orderDetails: {
+              customerName: paymentData.customerName,
+              customerEmail: paymentData.customerEmail,
+              items: posCart.map(item => ({
+                title: item.title,
+                quantity: item.quantity,
+                price: item.price,
+                size: item.size
+              }))
+            }
+          }
+        });
+
+        if (error || !data.success) {
+          throw new Error(error?.message || data?.error || 'Payment failed');
+        }
+      }
+
+      // Decrement inventory and update DB
       for (const item of posCart) {
         decrementInventory(item.id, item.size, item.quantity);
-
-        // Get updated override to sync to DB
         const updatedOverride = useAdminStore.getState().productOverrides[item.id];
         if (updatedOverride) {
           await upsertProduct(updatedOverride);
@@ -110,13 +326,14 @@ export default function AdminPOS() {
 
       const newOrder: AdminOrder = {
         id: `#POS-${Math.floor(Math.random() * 9000) + 1000}`,
-        customerName: 'In-Store Customer',
-        customerEmail: 'pos@ninaarmend.co.site',
+        customerName: paymentData.customerName,
+        customerEmail: paymentData.customerEmail,
         date: new Date().toISOString().split('T')[0],
         total: cartTotal.toFixed(2),
         shippingCost: '0.00',
-        itemCost: (subtotal * 0.3).toFixed(2), // Mock 30% COGS
-        status: 'Pending',
+        itemCost: (subtotal * 0.3).toFixed(2),
+        status: 'Paid',
+        paymentMethod: paymentData.method,
         trackingNumber: 'In-Store Pickup',
         items: posCart.map(item => ({
           title: item.title,
@@ -137,10 +354,11 @@ export default function AdminPOS() {
       toast.success("Transaction completed successfully!");
 
       setTimeout(() => setShowSuccess(false), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sale error:", error);
-      toast.error("Failed to complete transaction");
+      toast.error(error.message || "Failed to complete transaction");
       setIsProcessing(false);
+      throw error;
     }
   };
 
@@ -172,9 +390,6 @@ export default function AdminPOS() {
                           src={product.images[0]?.url || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400'}
                           alt={product.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1585924756944-b82af627eca9?q=80&w=400';
-                          }}
                         />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -257,11 +472,11 @@ export default function AdminPOS() {
                   <Button
                     className="w-full h-14 bg-primary text-primary-foreground font-sans uppercase tracking-widest text-xs shadow-lg relative overflow-hidden group"
                     disabled={posCart.length === 0 || isProcessing}
-                    onClick={completeSale}
+                    onClick={() => setShowCheckout(true)}
                   >
                     {isProcessing ? (
                       <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Processing...</span>
                       </div>
                     ) : showSuccess ? (
@@ -272,7 +487,7 @@ export default function AdminPOS() {
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <CreditCard className="h-4 w-4" />
-                        <span>Complete Transaction</span>
+                        <span>Go to Checkout</span>
                       </div>
                     )}
                   </Button>
@@ -293,17 +508,14 @@ export default function AdminPOS() {
       <Footer />
 
       <Dialog open={!!selectingProduct} onOpenChange={(open) => !open && setSelectingProduct(null)}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[400px] bg-background border-primary/20 shadow-gold">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">Select Size</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-3 gap-2 py-4">
             {selectingProduct?.options.find(o => o.name === 'Size')?.values.map(size => {
-              // If product has an override with sizeInventory, use it.
-              // Otherwise, if it has a total inventory override, distribute it (simple fallback).
-              // Otherwise, fallback to a default stock of 15 for demo purposes.
               const override = productOverrides[selectingProduct.id];
-              let stock = 15; // Default for mock products
+              let stock = 15;
 
               if (override) {
                 if (override.sizeInventory && override.sizeInventory[size] !== undefined) {
@@ -335,6 +547,16 @@ export default function AdminPOS() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showCheckout && (
+        <POSCheckoutDialog
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          items={posCart}
+          subtotal={subtotal}
+          onComplete={completeSale}
+        />
+      )}
     </div>
   );
 }
