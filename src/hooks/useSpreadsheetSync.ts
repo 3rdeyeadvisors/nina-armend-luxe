@@ -27,7 +27,7 @@ const normalizeTitle = (title: string): string => {
 export function useSpreadsheetSync() {
   const { data: allProducts } = useProducts(1000);
   const { updateProductOverride } = useAdminStore();
-  const { bulkUpsertProducts } = useProductsDb();
+  const { bulkUpsertProducts, fetchProducts } = useProductsDb();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -229,11 +229,13 @@ export function useSpreadsheetSync() {
           console.warn(`Deduplicated ${productsToSync.length - uniqueProductsToSync.length} products with duplicate IDs`);
         }
 
+        toast.info('Saving products to database...');
         const success = await bulkUpsertProducts(uniqueProductsToSync);
         if (success) {
-          toast.success(`Sync complete! ${productsToSync.length} products saved to database.`);
+          await fetchProducts(); // Refresh from database to confirm persistence
+          toast.success(`Sync complete! ${uniqueProductsToSync.length} products saved to database.`);
         } else {
-          toast.error('Local sync complete, but database update failed.');
+          toast.error('Database save failed. Products only saved locally. Please log in as admin and try again.');
         }
       } catch (error) {
         console.error('Spreadsheet parsing failed:', error);
