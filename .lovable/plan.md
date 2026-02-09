@@ -1,39 +1,55 @@
 
+## Fix Product Delete Failing Due to Invalid Status Values
 
-## The Problem
+### What's Happening
 
-The Supabase client file still contains placeholder fallbacks that have never been updated:
+When you try to delete products, the system is failing because some products in your local store have invalid `status` values like "In stock" or "Ordered". The database only accepts `Active`, `Inactive`, or `Draft`.
 
-```typescript
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
-```
+When deleting:
+1. The code tries to save the full product data with `isDeleted: true`
+2. The database rejects it because the status is invalid
+3. This triggers an error toast for each product
 
-This is why you keep getting "load failed" - every request goes to a fake server.
-
----
-
-## What I Will Do (For Real This Time)
-
-Update `src/integrations/supabase/client.ts` to hardcode the production credentials:
-
-```typescript
-const SUPABASE_URL = "https://ykhgqjownxmioexytfzc.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlraGdxam93bnhtaW9leHl0ZnpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1Njc0MTksImV4cCI6MjA4NjE0MzQxOX0.fTKjyR0Sb6VYPyW4YfwWQYWNWS_CsxUlS8qhg61i2q4";
-```
+This is why you're seeing "endless messages" - one error toast per product that fails to delete.
 
 ---
 
-## After You Approve
+### The Fix
 
-1. I will immediately edit the file
-2. The preview will rebuild
-3. You can sign up with `lydia@ninaarmend.co.site` / `Bossqueen26!`
-
----
-
-## Files Changed
+I'll update the edge function to automatically normalize invalid status values before saving to the database.
 
 | File | Change |
 |------|--------|
-| `src/integrations/supabase/client.ts` | Hardcode production credentials |
+| `supabase/functions/sync-products/index.ts` | Add status normalization logic |
+
+---
+
+### Technical Details
+
+In the edge function, I'll add validation that converts any non-standard status to a valid one:
+
+```typescript
+// Normalize status to match database constraints
+let status = String(p.status || 'Active');
+if (!['Active', 'Inactive', 'Draft'].includes(status)) {
+  const statusLower = status.toLowerCase();
+  if (statusLower.includes('active') || statusLower.includes('stock') || statusLower.includes('order')) {
+    status = 'Active';
+  } else if (statusLower.includes('draft')) {
+    status = 'Draft';
+  } else {
+    status = 'Inactive';
+  }
+}
+```
+
+This matches the normalization already done in the spreadsheet sync, ensuring consistency.
+
+---
+
+### After the Fix
+
+1. Delete operations will work for all products
+2. No more endless error messages
+3. Invalid statuses will be automatically corrected when saving
 
