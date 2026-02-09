@@ -54,6 +54,8 @@ export interface AdminSettings {
   lowStockThreshold: number;
   posProvider: 'none' | 'square';
   squareApiKey: string;
+  squareApplicationId: string;
+  squareLocationId: string;
   autoSync: boolean;
 }
 
@@ -81,6 +83,8 @@ const INITIAL_SETTINGS: AdminSettings = {
   lowStockThreshold: 10,
   posProvider: 'square',
   squareApiKey: '',
+  squareApplicationId: '',
+  squareLocationId: '',
   autoSync: true
 };
 

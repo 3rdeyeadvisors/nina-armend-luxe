@@ -162,6 +162,8 @@ export function DbSyncProvider({ children }: DbSyncProviderProps) {
           lowStockThreshold: data.low_stock_threshold || 10,
           posProvider: (data.pos_provider as 'none' | 'square') || 'none',
           squareApiKey: data.square_api_key || '',
+          squareApplicationId: data.square_application_id || '',
+          squareLocationId: data.square_location_id || '',
           autoSync: data.auto_sync ?? true,
         });
       };

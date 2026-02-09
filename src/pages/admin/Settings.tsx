@@ -182,6 +182,29 @@ export default function AdminSettings() {
                               </p>
                             </div>
                           )}
+
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                              <Label htmlFor="squareAppId">Square Application ID</Label>
+                              <Input
+                                id="squareAppId"
+                                placeholder="sq0idp-..."
+                                value={localSettings.squareApplicationId}
+                                onChange={(e) => setLocalSettings({...localSettings, squareApplicationId: e.target.value})}
+                                className="font-mono text-xs"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="squareLocationId">Square Location ID</Label>
+                              <Input
+                                id="squareLocationId"
+                                placeholder="L..."
+                                value={localSettings.squareLocationId}
+                                onChange={(e) => setLocalSettings({...localSettings, squareLocationId: e.target.value})}
+                                className="font-mono text-xs"
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

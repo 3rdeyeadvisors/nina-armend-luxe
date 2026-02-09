@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProducts';
 import { useCartStore } from '@/stores/cartStore';
 import { useWishlistStore } from '@/stores/wishlistStore';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useCloudAuthStore } from '@/stores/cloudAuthStore';
 
 const ProductPage = () => {
+  const navigate = useNavigate();
   const { handle } = useParams<{ handle: string }>();
   const { data: product, isLoading, isError } = useProduct(handle || '');
 
@@ -90,7 +91,7 @@ const ProductPage = () => {
   const selectedVariant = variants.length > selectedVariantIndex ? variants[selectedVariantIndex] : variants[0];
   const mainImage = images.length > selectedImageIndex ? images[selectedImageIndex] : images[0];
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = async (redirectToCheckout = false) => {
     if (!selectedVariant) return;
 
     setIsAdding(true);
@@ -104,6 +105,10 @@ const ProductPage = () => {
     });
     setIsAdding(false);
     
+    if (redirectToCheckout) {
+      navigate('/checkout');
+    }
+
     toast.success('Added to bag', {
       description: `${product.title} × ${quantity}`,
       position: 'top-center',
@@ -277,12 +282,13 @@ const ProductPage = () => {
               </div>
 
               {/* Add to cart */}
-              <div className="flex gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 <Button
-                  onClick={handleAddToCart}
+                  onClick={() => handleAddToCart(false)}
                   disabled={isCartLoading || isAdding || !selectedVariant?.availableForSale}
                   size="lg"
-                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-sans tracking-wider py-6"
+                  variant="outline"
+                  className="bg-transparent hover:bg-primary/5 text-primary border-primary/30 font-sans tracking-wider py-6"
                 >
                   {isAdding ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -296,9 +302,21 @@ const ProductPage = () => {
                   )}
                 </Button>
                 <Button
+                  onClick={() => handleAddToCart(true)}
+                  disabled={isCartLoading || isAdding || !selectedVariant?.availableForSale}
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans tracking-wider py-6"
+                >
+                  {isAdding ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    'Buy It Now'
+                  )}
+                </Button>
+                <Button
                   variant="outline"
                   size="lg"
-                  className={`px-6 border-border hover:border-primary/50 ${
+                  className={`px-6 border-border hover:border-primary/50 col-span-full sm:col-auto ${
                     isInWishlist(product.id) ? 'text-primary border-primary/30 bg-primary/5' : ''
                   }`}
                   onClick={() => {

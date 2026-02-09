@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -9,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
 
 export const CartDrawer = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const { items, isLoading, updateQuantity, removeItem, clearCart } = useCartStore();
   const addAdminOrder = useAdminStore(state => state.addOrder);
@@ -24,32 +26,8 @@ export const CartDrawer = () => {
   const freeShippingEligible = totalSets >= 2;
 
   const handleCheckout = () => {
-    // Create order in admin dashboard
-    addAdminOrder({
-      id: `#ORD-${Math.floor(Math.random() * 9000) + 1000}`,
-      customerName: user?.name || 'Guest Customer',
-      customerEmail: user?.email || null,
-      date: new Date().toISOString().split('T')[0],
-      total: totalPrice.toFixed(2),
-      status: 'Pending',
-      trackingNumber: 'Pending',
-      shippingCost: freeShippingEligible ? '0.00' : '12.50',
-      itemCost: (totalPrice * 0.3).toFixed(2),
-      items: items.map(item => ({
-        title: item.product.title,
-        quantity: item.quantity,
-        price: item.price.amount,
-        image: item.product.images[0]?.url || '',
-        size: item.variantTitle
-      }))
-    });
-
-    toast.success("Order placed successfully!", {
-      description: "Thank you for your purchase. You'll receive a confirmation email shortly."
-    });
-    
-    clearCart();
     setIsOpen(false);
+    navigate('/checkout');
   };
 
   return (
