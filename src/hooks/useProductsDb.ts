@@ -59,6 +59,7 @@ export function useProductsDb() {
 
       if (!userEmail || userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
         console.error('Admin access required to sync products');
+        toast.error('Admin login required to save products to database. Please log in.');
         return false;
       }
 
