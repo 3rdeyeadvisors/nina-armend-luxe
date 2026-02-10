@@ -88,8 +88,8 @@ export function Footer() {
               NINA ARMEND
             </h2>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-xs">
-              Premium Brazilian swimwear crafted with passion, designed to celebrate 
-              the beauty of every silhouette.
+              Online luxury swimwear brand offering exotic crafted pieces made in Brazil.
+              Collections designed to flatter every body type with high-quality, eco-conscious fabrics.
             </p>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="hover:text-primary" asChild>

@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     question: "Where are your products made?",
-    answer: "All Nina Armend swimwear is proudly handcrafted in Brazil using premium Italian fabrics. We work closely with small-scale manufacturers to ensure ethical production and exceptional quality."
+    answer: "All Nina Armend swimwear is proudly handcrafted in Brazil, where swimwear fabrics set the standard. We use high-quality, eco-conscious fabrics and work closely with small-scale manufacturers to ensure ethical production and exceptional quality."
   },
   {
     question: "Do you ship worldwide?",

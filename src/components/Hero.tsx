@@ -49,8 +49,7 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.9 }}
             className="text-muted-foreground font-sans text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed"
           >
-            Experience the essence of Brazilian luxury. Handcrafted pieces
-            designed to accentuate your natural beauty with premium double-lined fabrics.
+            Experience exotic crafted pieces made in Brazil, where swimwear fabrics set the standard. Collections thoughtfully selected to flatter every body type with eco-conscious fabrics.
           </motion.p>
           
           <motion.div
