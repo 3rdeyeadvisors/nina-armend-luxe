@@ -16,8 +16,7 @@ export default function About() {
           >
             <h1 className="font-serif text-4xl md:text-6xl mb-6">Our Story</h1>
             <p className="text-xl text-muted-foreground font-light leading-relaxed">
-              Born from the sun-drenched beaches of Rio and the sophisticated spirit of Brazilian design,
-              Nina Armend is more than just swimwear.
+              We are an online luxury swimwear brand offering exotic crafted pieces made in Brazil, where swimwear fabrics set the standard. Our collections are thoughtfully selected to flatter every body type, blending refined silhouettes with high quality, eco-conscious fabrics.
             </p>
           </motion.div>
 
@@ -30,13 +29,12 @@ export default function About() {
               <h2 className="font-serif text-3xl mb-6">The Nina Armend Vision</h2>
               <p className="text-muted-foreground mb-4 leading-relaxed">
                 Founded with a mission to celebrate the diverse beauty of women, Nina Armend combines
-                unparalleled Brazilian craftsmanship with timeless, luxurious silhouettes. Every piece
-                is designed to empower and inspire confidence, whether you're poolside in St. Barth's
-                or on the shores of Ipanema.
+                authentic Brazilian craftsmanship with exotic, luxurious silhouettes. Every piece
+                is thoughtfully selected to flatter every body type, ensuring high quality and eco-conscious production.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Our designs focus on the perfect fit, utilizing premium Italian fabrics and
-                innovative construction techniques that honor the body's natural curves.
+                Our designs focus on the perfect fit, utilizing high-quality Brazilian fabrics that set
+                the standard and innovative construction techniques that honor the body's natural curves.
               </p>
             </motion.div>
             <motion.div
@@ -88,7 +86,7 @@ export default function About() {
             <div className="grid md:grid-cols-3 gap-12">
               <div>
                 <h3 className="font-sans font-bold tracking-widest uppercase text-sm mb-4">Premium Fabrics</h3>
-                <p className="text-sm text-muted-foreground">We source only the finest double-lined Italian fabrics, ensuring longevity, comfort, and a perfect fit.</p>
+                <p className="text-sm text-muted-foreground">We source only the finest double-lined Brazilian fabrics that set the industry standard, ensuring longevity, comfort, and a perfect fit.</p>
               </div>
               <div>
                 <h3 className="font-sans font-bold tracking-widest uppercase text-sm mb-4">Ethical Production</h3>

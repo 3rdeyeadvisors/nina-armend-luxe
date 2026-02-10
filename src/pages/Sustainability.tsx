@@ -27,7 +27,7 @@ export default function Sustainability() {
               {
                 icon: Leaf,
                 title: "Eco-Conscious Fabrics",
-                description: "We utilize recycled nylon and sustainable Italian fabrics that are certified for their reduced environmental impact."
+                description: "We utilize high-quality, eco-conscious fabrics made in Brazil, where swimwear fabrics set the standard for the industry."
               },
               {
                 icon: Recycle,
